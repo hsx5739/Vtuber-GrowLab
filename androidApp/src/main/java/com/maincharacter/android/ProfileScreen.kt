@@ -35,12 +35,6 @@ fun ProfileScreen(
         ProfileSettingSection()
         ProfileAboutSection()
 
-        Button(
-            onClick = onNavigateBack,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("返回上一页")
-        }
     }
 }
 @Composable

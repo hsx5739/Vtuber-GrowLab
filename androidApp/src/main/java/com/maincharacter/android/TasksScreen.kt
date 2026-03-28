@@ -45,12 +45,6 @@ fun TasksScreen(
             )
         }
 
-        FilledTonalButton(
-            onClick = onNavigateBack,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("返回上一页")
-        }
     }
 }
 
