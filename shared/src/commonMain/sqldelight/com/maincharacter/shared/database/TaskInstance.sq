@@ -1,0 +1,15 @@
+import com.maincharacter.shared.model.TaskInstance;
+
+CREATE TABLE TaskInstance (
+    task_id TEXT NOT NULL PRIMARY KEY,
+    status TEXT NOT NULL DEFAULT 'LOCKED',
+    completed_at INTEGER,
+    verified_at INTEGER
+);
+
+selectById:
+SELECT * FROM TaskInstance WHERE task_id = ?;
+
+insert:
+INSERT OR REPLACE INTO TaskInstance(task_id, status, completed_at, verified_at)
+VALUES (?, ?, ?, ?);

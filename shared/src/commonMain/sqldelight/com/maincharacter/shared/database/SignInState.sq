@@ -1,0 +1,14 @@
+import com.maincharacter.shared.model.SignInState;
+
+CREATE TABLE SignInState (
+    last_sign_date TEXT,
+    streak INTEGER NOT NULL DEFAULT 0,
+    month_signed_bits TEXT NOT NULL DEFAULT '[]'
+);
+
+selectAll:
+SELECT * FROM SignInState LIMIT 1;
+
+insert:
+INSERT OR REPLACE INTO SignInState(last_sign_date, streak, month_signed_bits)
+VALUES (?, ?, ?);

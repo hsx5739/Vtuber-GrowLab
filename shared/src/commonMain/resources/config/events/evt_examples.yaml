@@ -1,0 +1,20 @@
+schemaVersion: 1
+events:
+  - id: evt_sandstorm_lite
+    weightBase: 10
+    tags:
+      - weather
+    introText: 【虚构事件】侦测到元素风暴扰动——像奇幻风暴路过虚拟世界！
+    description: 此为游戏内虚构剧情事件，与现实世界无关，不影响现实安全。
+    branches:
+      - optionId: use_barrier
+        label: 发动屏障
+        requiresSkillId: skill_barrier
+        rewardBundleId: rb_evt_skill_use
+      - optionId: observe
+        label: 先观察
+        rewardBundleId: rb_task_a_small
+      - optionId: talk
+        label: 和Ta聊聊
+        energyCost: 5
+        rewardBundleId: rb_task_a_small

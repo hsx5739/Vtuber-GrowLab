@@ -1,0 +1,27 @@
+# Kotlin
+*.kt
+*.kts
+
+# Gradle
+*.gradle
+*.gradle.kts
+.gradle/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Build
+build/
+target/
+out/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local
+local.properties
+*.log
+.gradle-user-home/

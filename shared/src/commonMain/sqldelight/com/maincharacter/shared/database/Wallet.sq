@@ -1,0 +1,14 @@
+import com.maincharacter.shared.model.Wallet;
+
+CREATE TABLE Wallet (
+    star_dust INTEGER NOT NULL DEFAULT 0,
+    moon_glow INTEGER NOT NULL DEFAULT 0,
+    gacha_tickets TEXT NOT NULL DEFAULT '{}'
+);
+
+selectAll:
+SELECT * FROM Wallet LIMIT 1;
+
+insert:
+INSERT OR REPLACE INTO Wallet(star_dust, moon_glow, gacha_tickets)
+VALUES (?, ?, ?);

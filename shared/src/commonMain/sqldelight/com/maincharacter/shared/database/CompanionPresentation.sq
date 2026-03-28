@@ -1,0 +1,13 @@
+import com.maincharacter.shared.model.CompanionPresentation;
+
+CREATE TABLE CompanionPresentation (
+    equipped_skin_id TEXT NOT NULL DEFAULT 'skin_default',
+    idle_variant TEXT NOT NULL DEFAULT 'default'
+);
+
+selectAll:
+SELECT * FROM CompanionPresentation LIMIT 1;
+
+insert:
+INSERT OR REPLACE INTO CompanionPresentation(equipped_skin_id, idle_variant)
+VALUES (?, ?);

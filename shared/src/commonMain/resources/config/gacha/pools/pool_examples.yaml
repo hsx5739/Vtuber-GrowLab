@@ -1,0 +1,23 @@
+schemaVersion: 1
+pools:
+  - id: pool_normal
+    cost:
+      STAR_DUST: 100
+    pityRule:
+      rarePullsMax: 90
+      rareTier: RARE
+    rows:
+      - id: gacha_common_star_dust
+        poolId: pool_normal
+        weight: 600
+        rewardBundleId: rb_gacha_common
+      
+      - id: gacha_rare_skill
+        poolId: pool_normal
+        weight: 30
+        rewardBundleId: rb_evt_skill_use
+      
+      - id: gacha_sr_skin
+        poolId: pool_normal
+        weight: 10
+        rewardBundleId: rb_gacha_common

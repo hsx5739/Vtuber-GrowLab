@@ -1,0 +1,35 @@
+schemaVersion: 1
+bundles:
+  - id: rb_task_a_small
+    statDelta:
+      MOOD: 2
+      BOND: 1
+    telemetryTags:
+      - task
+      - tier_a
+
+  - id: rb_task_verify_bonus
+    currencies:
+      STAR_DUST: 15
+    statDelta:
+      VITALITY: 5
+    telemetryTags:
+      - task
+      - verified
+
+  - id: rb_sign_day3
+    currencies:
+      STAR_DUST: 30
+      GACHA_TICKET_NORMAL: 1
+    statDelta:
+      BOND: 3
+
+  - id: rb_evt_skill_use
+    currencies:
+      STAR_DUST: 10
+    statDelta:
+      MOOD: 3
+
+  - id: rb_gacha_common
+    currencies:
+      STAR_DUST: 5

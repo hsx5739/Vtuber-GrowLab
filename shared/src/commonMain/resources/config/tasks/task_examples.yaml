@@ -1,0 +1,32 @@
+schemaVersion: 1
+tasks:
+  - id: task_daily_water
+    taskType: A
+    title: 今天有好好喝水吗
+    desc: 保持水分充足，让身体更舒适
+    rewardBundleId: rb_task_a_small
+    group: DAILY
+    maxCompletionsPerDay: 3
+    diminishingReturns: true
+
+  - id: task_focus_25
+    taskType: B
+    title: 专注 25 分钟
+    desc: 集中注意力完成一件小事
+    rewardBundleId: rb_task_verify_bonus
+    rewardVerifiedBundleId: rb_task_verify_bonus
+    handlerParams:
+      durationSec: 1500
+    group: DAILY
+
+  - id: task_daily_steps
+    taskType: C
+    title: 今日步数达标
+    desc: 走路6000步，让身体动起来
+    rewardBundleId: rb_task_verify_bonus
+    rewardVerifiedBundleId: rb_task_verify_bonus
+    handlerParams:
+      healthMetric: STEPS
+      threshold: 6000
+    group: DAILY
+    countsForWeekly: true
