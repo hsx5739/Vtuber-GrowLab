@@ -255,7 +255,10 @@ internal fun defaultInventoryState(ticketCount: Int = demoAccountContext.lottery
         items = items,
         skins = skins,
         shards = shards,
-        currencies = mapOf(CurrencyType.GACHA_TICKET to ticketCount),
+        currencies = mapOf(
+            CurrencyType.GACHA_TICKET to ticketCount,
+            CurrencyType.STAR_DUST to 1_000_000
+        ),
         equippedSkinId = InventoryCatalog.skinCeremony,
         metadata = mapOf(
             InventoryCatalog.wardrobeMigrationVersion to "true"

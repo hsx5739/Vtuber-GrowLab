@@ -1,39 +1,79 @@
 package com.maincharacter.android
 
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.*
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
+
 @Composable
 fun ShopScreen(
     onNavigateBack: () -> Unit = {}
 ) {
+    val appState by AppStateStore.state.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF0C1026))
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 18.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        ShopOverviewCard()
-        shopSections.forEach { section ->
-            ShopSectionCard(section = section)
-        }
-        Button(onClick = onNavigateBack, modifier = Modifier.fillMaxWidth()) {
-            Text("返回上一页")
+        SnackbarHost(hostState = snackbarHostState)
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            ShopOverviewCard(appState)
+            linkedShopSections.forEach { section ->
+                val products = linkedShopProducts.filter { it.sectionId == section.sectionId }
+                ShopSectionCard(
+                    title = section.title,
+                    summary = section.summary,
+                    products = products,
+                    appState = appState,
+                    onPurchase = { product ->
+                        val result = AppStateStore.purchaseShopProduct(product.productId)
+                        scope.launch {
+                            snackbarHostState.showSnackbar(result.message)
+                        }
+                    }
+                )
+            }
         }
     }
 }
+
 @Composable
-internal fun GachaOverviewCard() {
+private fun ShopOverviewCard(appState: PersistedAppState) {
     Card(
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF171C39))
@@ -43,13 +83,13 @@ internal fun GachaOverviewCard() {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "祈愿",
+                text = "商城联动",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
             Text(
-                text = "先做 Demo 版单卡池：展示星尘、月华、单抽券和基础保底说明，重点承接皮肤、技能卡、碎片的收集闭环。",
+                text = "全部商品已按真实奖励定义接入：统一消耗星尘，购买结果即时写入背包或角色状态。",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color(0xFFC8D1FF)
             )
@@ -57,20 +97,37 @@ internal fun GachaOverviewCard() {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                profileWalletStats.forEach { stat ->
-                    EventSummaryPill(
-                        label = stat.label,
-                        value = stat.value,
-                        accent = stat.accent,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+                EventSummaryPill(
+                    label = "星尘",
+                    value = appState.stardustBalance.toString(),
+                    accent = Color(0xFFFFD66E),
+                    modifier = Modifier.weight(1f)
+                )
+                EventSummaryPill(
+                    label = "抽卡券",
+                    value = currentInventoryTicketCount(appState.inventory).toString(),
+                    accent = Color(0xFFD6C7FF),
+                    modifier = Modifier.weight(1f)
+                )
+                EventSummaryPill(
+                    label = "碎片总量",
+                    value = appState.inventory.shards.values.sumOf { it.count }.toString(),
+                    accent = Color(0xFF9ED8FF),
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }
 }
+
 @Composable
-internal fun GachaPoolCard(pool: DemoPool) {
+private fun ShopSectionCard(
+    title: String,
+    summary: String,
+    products: List<ShopProductDefinition>,
+    appState: PersistedAppState,
+    onPurchase: (ShopProductDefinition) -> Unit
+) {
     Card(
         shape = RoundedCornerShape(26.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF161B37))
@@ -78,6 +135,42 @@ internal fun GachaPoolCard(pool: DemoPool) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
+            Text(summary, style = MaterialTheme.typography.bodyMedium, color = Color(0xFFC8D1FF))
+            products.forEach { product ->
+                ShopProductCard(
+                    product = product,
+                    appState = appState,
+                    onPurchase = onPurchase
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ShopProductCard(
+    product: ShopProductDefinition,
+    appState: PersistedAppState,
+    onPurchase: (ShopProductDefinition) -> Unit
+) {
+    val afford = appState.stardustBalance >= product.price
+    val statusLabel = when {
+        !afford -> "星尘不足"
+        product.rewardType == ShopRewardType.SKIN_SHARD && isSkinUnlocked(appState, product.rewardTargetId) -> "已拥有外观"
+        else -> "可购买"
+    }
+    val statusColor = when {
+        !afford -> Color(0xFFF2B9DA)
+        statusLabel == "已拥有外观" -> Color(0xFF90E2FF)
+        else -> product.accent
+    }
+
+    Surface(shape = RoundedCornerShape(18.dp), color = Color(0xFF20264A)) {
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -86,256 +179,59 @@ internal fun GachaPoolCard(pool: DemoPool) {
             ) {
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    TaskStatusBadge(pool.highlight, pool.highlightColor)
-                    Text(
-                        text = pool.name,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                    Text(
-                        text = pool.description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFFC8D1FF)
-                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        product.badge?.let { EventTagBadge(it) }
+                        TaskStatusBadge(statusLabel, statusColor)
+                    }
+                    Text(product.name, style = MaterialTheme.typography.titleMedium, color = Color.White, fontWeight = FontWeight.SemiBold)
+                    Text(product.description, style = MaterialTheme.typography.bodySmall, color = Color(0xFFB8C4F6))
                 }
-                Surface(
-                    shape = RoundedCornerShape(18.dp),
-                    color = Color(0xFF20264A)
+                Text("${product.price} 星尘", style = MaterialTheme.typography.labelLarge, color = product.accent, fontWeight = FontWeight.SemiBold)
+            }
+
+            Text(
+                text = buildRewardPreview(product),
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFFE3E7FF)
+            )
+
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(enabled = afford) { onPurchase(product) },
+                shape = RoundedCornerShape(16.dp),
+                color = if (afford) Color(0xFF7588FF) else Color(0xFF2A315D)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = pool.costLabel,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = Color(0xFFFFD66E),
+                        text = if (afford) "立即购买" else "余额不足",
+                        color = Color.White,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
             }
-
-            Surface(
-                shape = RoundedCornerShape(18.dp),
-                color = Color(0xFF20264A)
-            ) {
-                Column(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text("掉落重点", style = MaterialTheme.typography.labelLarge, color = Color.White)
-                    Text(pool.dropHint, style = MaterialTheme.typography.bodySmall, color = Color(0xFFB8C4F6))
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Surface(
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(18.dp),
-                    color = Color(0xFF7588FF)
-                ) {
-                    Box(modifier = Modifier.padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
-                        Text("单抽一次", color = Color.White, fontWeight = FontWeight.SemiBold)
-                    }
-                }
-                Surface(
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(18.dp),
-                    color = Color(0xFF242A4A)
-                ) {
-                    Box(modifier = Modifier.padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
-                        Text("查看记录", color = Color(0xFFB8C4F6), fontWeight = FontWeight.Medium)
-                    }
-                }
-            }
         }
     }
 }
 
-@Composable
-internal fun GachaRuleCard() {
-    Card(
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0x22FFF1A8))
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text("规则说明", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFFFFE37A))
-            Text(
-                text = "当前参考 `pool_normal`：100 星尘单抽，90 抽内至少出稀有。页面上保留概率、公示和未成年人保护入口，不把抽卡做成赌场式刺激。",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFFFFF6C4)
-            )
-        }
+private fun buildRewardPreview(product: ShopProductDefinition): String {
+    return when (product.rewardType) {
+        ShopRewardType.ITEM -> "奖励：背包道具 +${product.rewardAmount}"
+        ShopRewardType.SKIN_SHARD -> "奖励：对应外观碎片 +${product.rewardAmount}"
+        ShopRewardType.TICKET -> "奖励：抽卡券 +${product.rewardAmount}"
+        ShopRewardType.STATUS -> "奖励：角色状态 ${product.rewardTargetId} +${product.rewardAmount}"
+        ShopRewardType.STARDUST -> "奖励：星尘 +${product.rewardAmount}"
     }
 }
 
-@Composable
-internal fun SignInHeroCard() {
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF171C39))
-    ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text("今日签到", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.White)
-            Text(
-                text = "签到页重点是“半屏日历 + 连签奖励 + 温和留存反馈”。今天先做出完整展示态，后续再接真实日界与幂等逻辑。",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFFC8D1FF)
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                signInSummaryStats.forEach { stat ->
-                    EventSummaryPill(
-                        label = stat.label,
-                        value = stat.value,
-                        accent = stat.accent,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-        }
-    }
+private fun isSkinUnlocked(appState: PersistedAppState, skinId: String?): Boolean {
+    if (skinId == null) return false
+    return appState.inventory.skins[skinId]?.isUnlocked == true
 }
-
-@Composable
-internal fun SignInCalendarCard() {
-    Card(
-        shape = RoundedCornerShape(26.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF161B37))
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text("三月签到簿", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                signInDays.chunked(4).forEach { columnDays ->
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        columnDays.forEach { day ->
-                            Surface(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(16.dp),
-                                color = if (day.signed) Color(0xFF7588FF) else Color(0xFF20264A)
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(vertical = 10.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                                ) {
-                                    Text(day.day, color = Color.White, fontWeight = FontWeight.Bold)
-                                    Text(day.reward, color = Color(0xFFE3E7FF), style = MaterialTheme.typography.labelSmall)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            Surface(shape = RoundedCornerShape(18.dp), color = Color(0xFF7588FF)) {
-                Box(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
-                    Text("领取今日奖励", color = Color.White, fontWeight = FontWeight.SemiBold)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-internal fun SignInMilestoneCard() {
-    Card(
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF7F5FF))
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text("连续签到奖励", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF2A315D))
-            signInMilestones.forEach { milestone ->
-                TaskDetailRow(label = milestone.first, value = milestone.second)
-            }
-        }
-    }
-}
-@Composable
-private fun ShopOverviewCard() {
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF171C39))
-    ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text("商店", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.White)
-            Text(
-                text = "先承接养成物资、皮肤碎片和互动礼物。Demo 里以页面展示和商品结构为主，付费链路后续再接沙箱。",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFFC8D1FF)
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                shopWalletStats.forEach { stat ->
-                    EventSummaryPill(
-                        label = stat.label,
-                        value = stat.value,
-                        accent = stat.accent,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-        }
-    }
-}
-@Composable
-private fun ShopSectionCard(section: ShopSection) {
-    Card(
-        shape = RoundedCornerShape(26.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF161B37))
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(section.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
-            Text(section.summary, style = MaterialTheme.typography.bodyMedium, color = Color(0xFFC8D1FF))
-            section.items.forEach { item ->
-                Surface(shape = RoundedCornerShape(18.dp), color = Color(0xFF20264A)) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Text(item.name, style = MaterialTheme.typography.titleMedium, color = Color.White, fontWeight = FontWeight.SemiBold)
-                            Text(item.description, style = MaterialTheme.typography.bodySmall, color = Color(0xFFB8C4F6))
-                        }
-                        Text(item.price, style = MaterialTheme.typography.labelLarge, color = item.accent, fontWeight = FontWeight.SemiBold)
-                    }
-                }
-            }
-        }
-    }
-}
-

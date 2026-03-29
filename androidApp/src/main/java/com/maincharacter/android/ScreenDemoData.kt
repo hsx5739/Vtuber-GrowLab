@@ -770,15 +770,14 @@ internal val profileAboutRows = listOf(
 
 internal val profileWalletStats = listOf(
     ProfileStat("星尘", "380", Color(0xFFFFD66E)),
-    ProfileStat("月华", "40", Color(0xFFD6C7FF)),
     ProfileStat("单抽券", "2", Color(0xFF90E2FF))
 )
 
 internal val demoPools = listOf(
     DemoPool(
         name = "常驻星愿池",
-        description = "对应 `pool_normal`，主打技能卡、皮肤碎片和基础养成资源，是 Demo 的默认池。",
-        costLabel = "100 星尘 / 次",
+        description = "",
+        costLabel = "10张抽奖卷 抽一次",
         highlight = "90 抽保底",
         highlightColor = Color(0xFFFFD66E),
         dropHint = "普通掉落给星尘与通用物资，稀有掉落偏向技能卡，SR 档承接皮肤碎片和陪伴外观。"
@@ -810,8 +809,7 @@ internal val signInMilestones = listOf(
 
 internal val shopWalletStats = listOf(
     ProfileStat("星尘", "380", Color(0xFFFFD66E)),
-    ProfileStat("月华", "40", Color(0xFFD6C7FF)),
-    ProfileStat("碎片", "23", Color(0xFFF7B6D1))
+    ProfileStat("抽奖券", demoAccountContext.lotteryTicketCount.toString(), Color(0xFF90E2FF))
 )
 
 internal val shopSections = listOf(
@@ -820,15 +818,22 @@ internal val shopSections = listOf(
         summary = "优先卖果实、互动礼物和任务辅助物资，保持“养成 / 陪伴”调性，不做赌场式强刺激。",
         items = listOf(
             ShopItem("元气果礼包", "短期提高行动氛围和任务正反馈。", "80 星尘", Color(0xFFC8FF9B)),
-            ShopItem("絮语礼盒", "偏陪伴向的小礼物，后续可联动聊天气泡和纸条事件。", "120 星尘", Color(0xFFF7B6D1))
+            ShopItem("亲密果大礼盒", "装满能拉近距离的小甜意，送出后能帮你更快积累亲密度，让每次互动都更有回响。", "120 星尘", Color(0xFFF7B6D1))
         )
     ),
     ShopSection(
         title = "外观兑换",
         summary = "围绕皮肤碎片与陪伴者换装做长期收集，不把成长价值完全绑定充值。",
         items = listOf(
-            ShopItem("夜航校服碎片", "用于合成 SR 外观“夜航校服”。", "6 月华", Color(0xFFD6C7FF)),
-            ShopItem("晨雾便服染色票", "给已有日常皮肤增加轻量差分演出。", "4 月华", Color(0xFF90E2FF))
+            ShopItem("夜航校服碎片", "用于合成 SR 外观“夜航校服”。", "600 星尘", Color(0xFFFFD66E)),
+            ShopItem("晨雾便服染色票", "给已有日常皮肤增加轻量差分演出。", "400 星尘", Color(0xFFFFD66E))
+        )
+    ),
+    ShopSection(
+        title = "抽奖券兑换",
+        summary = "用星尘先换好抽奖券，方便把日常积累的资源直接接入后续抽取节奏。",
+        items = listOf(
+            ShopItem("抽奖券", "用于后续抽卡的基础兑换券，先囤一张，想抽的时候就能直接用。", "50 星尘", Color(0xFFFFD66E))
         )
     )
 )

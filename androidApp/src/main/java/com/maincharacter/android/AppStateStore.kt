@@ -15,6 +15,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import kotlin.random.Random
 import java.util.TimeZone
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,11 +33,13 @@ internal data class PersistedAppState(
     val vitality: Int = demoAccountContext.vitality,
     val focus: Int = demoAccountContext.focus,
     val mood: Int = demoAccountContext.mood,
+    val stardustBalance: Int = TEST_STARDUST_BALANCE,
     val lotteryTicketCount: Int = demoAccountContext.lotteryTicketCount,
     val signInState: SignInState = defaultSignInState(),
     val taskStates: Map<String, PersistedTaskState> = defaultTaskStates(),
     val itemCounts: Map<String, Int> = defaultItemCounts(),
     val inventory: Inventory = defaultInventoryState(),
+    val latestGachaResults: List<GachaPullResult> = emptyList(),
     val claimedWeeklyTaskIds: Set<String> = emptySet(),
     val weeklyResetKey: String = currentWeeklyResetKey()
 )
@@ -142,6 +145,107 @@ internal object AppStateStore {
         )
         saveState(nextState)
         return true
+    }
+
+    fun purchaseShopProduct(productId: String): ShopPurchaseResult {
+        val product = linkedShopProducts.firstOrNull { it.productId == productId }
+            ?: return ShopPurchaseResult(false, "商品不存在")
+
+        val current = _state.value
+        if (current.stardustBalance < product.price) {
+            return ShopPurchaseResult(false, "星尘不足")
+        }
+
+        var nextState = current.copy(stardustBalance = current.stardustBalance - product.price)
+        nextState = when (product.rewardType) {
+            ShopRewardType.ITEM -> {
+                val itemId = product.rewardTargetId ?: return ShopPurchaseResult(false, "商品配置缺少目标")
+                val currentItem = nextState.inventory.items[itemId]
+                val nextCount = (currentItem?.count ?: 0) + product.rewardAmount
+                val nextItems = nextState.inventory.items + (
+                    itemId to (currentItem ?: ItemState(
+                        itemId = itemId,
+                        count = nextCount,
+                        isConsumable = InventoryCatalog.itemDefinitions[itemId]?.isConsumable == true
+                    )).copy(count = nextCount)
+                )
+                nextState.copy(
+                    itemCounts = nextState.itemCounts + (itemId to nextCount),
+                    inventory = nextState.inventory.copy(items = nextItems, lastUpdateTime = System.currentTimeMillis())
+                )
+            }
+
+            ShopRewardType.SKIN_SHARD -> {
+                val skinId = product.rewardTargetId ?: return ShopPurchaseResult(false, "商品配置缺少目标")
+                val currentShard = nextState.inventory.shards[skinId]
+                val nextCount = (currentShard?.count ?: 0) + product.rewardAmount
+                val nextShards = nextState.inventory.shards + (
+                    skinId to (currentShard ?: ShardState(skinId = skinId, count = nextCount)).copy(
+                        count = nextCount,
+                        lastUpdateTime = System.currentTimeMillis()
+                    )
+                )
+                val currentSkin = nextState.inventory.skins[skinId]
+                val nextSkins = if (currentSkin != null) {
+                    nextState.inventory.skins + (skinId to currentSkin.copy(shardCount = nextCount))
+                } else {
+                    nextState.inventory.skins
+                }
+                nextState.copy(
+                    inventory = nextState.inventory.copy(
+                        shards = nextShards,
+                        skins = nextSkins,
+                        lastUpdateTime = System.currentTimeMillis()
+                    )
+                )
+            }
+
+            ShopRewardType.TICKET -> {
+                nextState.copy(lotteryTicketCount = nextState.lotteryTicketCount + product.rewardAmount)
+            }
+
+            ShopRewardType.STATUS -> {
+                val statusTarget = product.rewardTargetId ?: return ShopPurchaseResult(false, "商品配置缺少目标")
+                when (StatusType.valueOf(statusTarget)) {
+                    StatusType.BOND -> nextState.copy(bond = (nextState.bond + product.rewardAmount).coerceAtMost(100))
+                    StatusType.CHARM -> nextState.copy(charm = (nextState.charm + product.rewardAmount).coerceAtMost(100))
+                    StatusType.VITALITY -> nextState.copy(vitality = (nextState.vitality + product.rewardAmount).coerceAtMost(100))
+                    StatusType.FOCUS -> nextState.copy(focus = (nextState.focus + product.rewardAmount).coerceAtMost(100))
+                    StatusType.MOOD -> nextState.copy(mood = (nextState.mood + product.rewardAmount).coerceAtMost(100))
+                }
+            }
+
+            ShopRewardType.STARDUST -> {
+                nextState.copy(stardustBalance = nextState.stardustBalance + product.rewardAmount)
+            }
+        }
+
+        saveState(normalizeState(nextState))
+        return ShopPurchaseResult(success = true, message = buildPurchaseMessage(product))
+    }
+
+    fun executeGacha(poolId: String): GachaActionResult {
+        val pool = linkedGachaPools.firstOrNull { it.poolId == poolId }
+            ?: return GachaActionResult(false, "奖池不存在")
+        val current = _state.value
+        if (current.lotteryTicketCount < pool.ticketCost) {
+            return GachaActionResult(false, "抽卡券不足，至少需要 ${pool.ticketCost} 张")
+        }
+
+        var nextState = current.copy(
+            lotteryTicketCount = current.lotteryTicketCount - pool.ticketCost,
+            latestGachaResults = emptyList()
+        )
+        val results = mutableListOf<GachaPullResult>()
+        repeat(pool.ticketCost) {
+            val reward = pickGachaReward(pool)
+            val applied = applyGachaReward(nextState, reward)
+            nextState = applied.first
+            results += applied.second
+        }
+        nextState = nextState.copy(latestGachaResults = results)
+        saveState(normalizeState(nextState))
+        return GachaActionResult(true, "十连完成，共获得 ${results.size} 项奖励")
     }
 
     fun equipInventorySkin(skinId: String): Boolean {
@@ -259,6 +363,7 @@ internal object AppStateStore {
             put("vitality", state.vitality)
             put("focus", state.focus)
             put("mood", state.mood)
+            put("stardustBalance", state.stardustBalance)
             put("lotteryTicketCount", state.lotteryTicketCount)
             put(
                 "signIn",
@@ -276,6 +381,17 @@ internal object AppStateStore {
             put("tasks", tasksJson)
             put("items", itemsJson)
             put("inventory", DataSerializer.serializeInventory(state.inventory))
+            put(
+                "latestGachaResults",
+                state.latestGachaResults.map { result ->
+                    JSONObject().apply {
+                        put("title", result.title)
+                        put("detail", result.detail)
+                        put("rarity", result.rarity)
+                        put("accentArgb", result.accentArgb)
+                    }
+                }
+            )
             put("claimedWeeklyTaskIds", state.claimedWeeklyTaskIds.toList())
             put("weeklyResetKey", state.weeklyResetKey)
         }.toString()
@@ -287,6 +403,20 @@ internal object AppStateStore {
         val itemsJson = json.optJSONObject("items")
         val signInJson = json.optJSONObject("signIn")
         val inventoryJson = json.optString("inventory", "")
+        val latestGachaResults = buildList {
+            val array = json.optJSONArray("latestGachaResults") ?: return@buildList
+            for (index in 0 until array.length()) {
+                val resultObject = array.optJSONObject(index) ?: continue
+                add(
+                    GachaPullResult(
+                        title = resultObject.optString("title"),
+                        detail = resultObject.optString("detail"),
+                        rarity = resultObject.optString("rarity"),
+                        accentArgb = resultObject.optLong("accentArgb").toInt()
+                    )
+                )
+            }
+        }
         val claimedWeeklyTaskIds = buildSet {
             val claimedArray = json.optJSONArray("claimedWeeklyTaskIds") ?: return@buildSet
             for (index in 0 until claimedArray.length()) {
@@ -316,6 +446,7 @@ internal object AppStateStore {
             vitality = json.optInt("vitality", demoAccountContext.vitality),
             focus = json.optInt("focus", demoAccountContext.focus),
             mood = json.optInt("mood", demoAccountContext.mood),
+            stardustBalance = json.optInt("stardustBalance", TEST_STARDUST_BALANCE),
             lotteryTicketCount = json.optInt("lotteryTicketCount", demoAccountContext.lotteryTicketCount),
             signInState = if (signInJson == null) {
                 defaultSignInState()
@@ -338,6 +469,7 @@ internal object AppStateStore {
                     defaultInventoryState(json.optInt("lotteryTicketCount", demoAccountContext.lotteryTicketCount))
                 }
             } ?: defaultInventoryState(json.optInt("lotteryTicketCount", demoAccountContext.lotteryTicketCount)),
+            latestGachaResults = latestGachaResults,
             claimedWeeklyTaskIds = claimedWeeklyTaskIds,
             weeklyResetKey = json.optString("weeklyResetKey", currentWeeklyResetKey())
         )
@@ -388,7 +520,7 @@ internal object AppStateStore {
         state: PersistedAppState,
         today: String = currentDateKey()
     ): PersistedAppState {
-        var normalized = refreshWeeklyStateIfNeeded(state)
+        var normalized = refreshWeeklyStateIfNeeded(state).copy(stardustBalance = TEST_STARDUST_BALANCE)
         val normalizedSignIn = normalizeSignInState(normalized.signInState, today)
         if (normalizedSignIn != normalized.signInState) {
             normalized = normalized.copy(signInState = normalizedSignIn)
@@ -701,7 +833,9 @@ private fun syncInventoryState(state: PersistedAppState): PersistedAppState {
         items = nextItems,
         skins = normalizedSkins,
         shards = nextShards,
-        currencies = previousInventory.currencies + (CurrencyType.GACHA_TICKET to state.lotteryTicketCount),
+        currencies = previousInventory.currencies +
+            (CurrencyType.GACHA_TICKET to state.lotteryTicketCount) +
+            (CurrencyType.STAR_DUST to state.stardustBalance),
         equippedSkinId = equippedSkinId,
         lastUpdateTime = now,
         metadata = nextMetadata
@@ -718,3 +852,142 @@ private fun syncInventoryState(state: PersistedAppState): PersistedAppState {
         )
     }
 }
+
+internal data class ShopPurchaseResult(
+    val success: Boolean,
+    val message: String
+)
+
+internal data class GachaActionResult(
+    val success: Boolean,
+    val message: String
+)
+
+internal data class GachaPullResult(
+    val title: String,
+    val detail: String,
+    val rarity: String,
+    val accentArgb: Int
+)
+
+private fun pickGachaReward(pool: GachaPoolPreview): GachaRewardPreview {
+    val totalWeight = pool.rewards.sumOf { it.weight }
+    val roll = Random.nextInt(totalWeight)
+    var cursor = 0
+    pool.rewards.forEach { reward ->
+        cursor += reward.weight
+        if (roll < cursor) return reward
+    }
+    return pool.rewards.last()
+}
+
+private fun applyGachaReward(
+    state: PersistedAppState,
+    reward: GachaRewardPreview
+): Pair<PersistedAppState, GachaPullResult> {
+    return when (reward.executionType) {
+        GachaExecutionType.ITEM -> {
+            val currentItem = state.inventory.items[reward.targetId]
+            val nextCount = (currentItem?.count ?: 0) + 1
+            val nextItems = state.inventory.items + (
+                reward.targetId to (currentItem ?: ItemState(
+                    itemId = reward.targetId,
+                    count = nextCount,
+                    isConsumable = InventoryCatalog.itemDefinitions[reward.targetId]?.isConsumable == true
+                )).copy(count = nextCount)
+            )
+            state.copy(
+                itemCounts = state.itemCounts + (reward.targetId to nextCount),
+                inventory = state.inventory.copy(items = nextItems, lastUpdateTime = System.currentTimeMillis())
+            ) to GachaPullResult(reward.targetName, "道具 +1", reward.rarity, gachaAccentForRarity(reward.rarity).value.toLong().toInt())
+        }
+
+        GachaExecutionType.TICKET -> {
+            state.copy(lotteryTicketCount = state.lotteryTicketCount + 1) to
+                GachaPullResult(reward.targetName, "抽卡券 +1", reward.rarity, gachaAccentForRarity(reward.rarity).value.toLong().toInt())
+        }
+
+        GachaExecutionType.SHARD -> {
+            val currentShard = state.inventory.shards[reward.targetId]
+            val nextCount = (currentShard?.count ?: 0) + 1
+            val nextShards = state.inventory.shards + (
+                reward.targetId to (currentShard ?: ShardState(skinId = reward.targetId, count = nextCount)).copy(
+                    count = nextCount,
+                    lastUpdateTime = System.currentTimeMillis()
+                )
+            )
+            val currentSkin = state.inventory.skins[reward.targetId]
+            val nextSkins = if (currentSkin != null) {
+                state.inventory.skins + (reward.targetId to currentSkin.copy(shardCount = nextCount))
+            } else {
+                state.inventory.skins
+            }
+            state.copy(
+                inventory = state.inventory.copy(shards = nextShards, skins = nextSkins, lastUpdateTime = System.currentTimeMillis())
+            ) to GachaPullResult(reward.targetName, "碎片 +1", reward.rarity, gachaAccentForRarity(reward.rarity).value.toLong().toInt())
+        }
+
+        GachaExecutionType.STARDUST -> {
+            val amount = Random.nextInt(reward.minAmount ?: 5, (reward.maxAmount ?: 100) + 1)
+            state.copy(stardustBalance = state.stardustBalance + amount) to
+                GachaPullResult(reward.targetName, "星尘 +$amount", reward.rarity, gachaAccentForRarity(reward.rarity).value.toLong().toInt())
+        }
+
+        GachaExecutionType.SKILL -> {
+            val skillState = state.inventory.skillCards[reward.targetId]
+            val isDuplicate = skillState != null
+            if (isDuplicate) {
+                val convertItemId = InventoryCatalog.skillDuplicateConversion[reward.rarity] ?: InventoryCatalog.itemEnergyPotion
+                val currentItem = state.inventory.items[convertItemId]
+                val nextCount = (currentItem?.count ?: 0) + 1
+                val nextItems = state.inventory.items + (
+                    convertItemId to (currentItem ?: ItemState(
+                        itemId = convertItemId,
+                        count = nextCount,
+                        isConsumable = InventoryCatalog.itemDefinitions[convertItemId]?.isConsumable == true
+                    )).copy(count = nextCount)
+                )
+                state.copy(
+                    itemCounts = state.itemCounts + (convertItemId to nextCount),
+                    inventory = state.inventory.copy(items = nextItems, lastUpdateTime = System.currentTimeMillis())
+                ) to GachaPullResult(reward.targetName, "重复转 ${InventoryCatalog.itemDefinitions[convertItemId]?.name ?: convertItemId} +1", reward.rarity, gachaAccentForRarity(reward.rarity).value.toLong().toInt())
+            } else {
+                val nextSkills = state.inventory.skillCards + (
+                    reward.targetId to com.maincharacter.shared.model.SkillCardState(
+                        skillCardId = reward.targetId,
+                        isUnlocked = true,
+                        unlockTime = System.currentTimeMillis(),
+                        level = 1,
+                        experience = 0,
+                        usageCount = 0
+                    )
+                )
+                state.copy(
+                    inventory = state.inventory.copy(skillCards = nextSkills, lastUpdateTime = System.currentTimeMillis())
+                ) to GachaPullResult(reward.targetName, "新技能解锁", reward.rarity, gachaAccentForRarity(reward.rarity).value.toLong().toInt())
+            }
+        }
+    }
+}
+
+private fun gachaAccentForRarity(rarity: String): Color {
+    return when (rarity) {
+        "SSR" -> Color(0xFFF7B6D1)
+        "SR" -> Color(0xFFD6C7FF)
+        "R" -> Color(0xFF9ED8FF)
+        else -> Color(0xFFFFE37A)
+    }
+}
+
+private fun buildPurchaseMessage(product: ShopProductDefinition): String {
+    val reward = when (product.rewardType) {
+        ShopRewardType.ITEM -> "${product.name} +${product.rewardAmount}"
+        ShopRewardType.SKIN_SHARD -> "${product.name} +${product.rewardAmount}"
+        ShopRewardType.TICKET -> "抽卡券 +${product.rewardAmount}"
+        ShopRewardType.STATUS -> "${product.rewardTargetId} +${product.rewardAmount}"
+        ShopRewardType.STARDUST -> "星尘 +${product.rewardAmount}"
+    }
+    return "购买成功：$reward"
+}
+
+private const val TEST_STARDUST_BALANCE = 1_000_000
