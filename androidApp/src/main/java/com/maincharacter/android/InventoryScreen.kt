@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 fun InventoryScreen(
     onNavigateBack: () -> Unit = {}
 ) {
+    val appState by AppStateStore.state.collectAsState()
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabLabels = listOf("技能", "道具", "外观")
 
@@ -33,7 +34,7 @@ fun InventoryScreen(
             onTabSelected = { selectedTab = it }
         )
 
-        InventoryCharacterContextCard()
+        InventoryCharacterContextCard(appState)
 
         when (selectedTab) {
             0 -> {
@@ -43,7 +44,7 @@ fun InventoryScreen(
             }
 
             1 -> {
-                inventoryItems.forEach { item ->
+                currentInventoryItems(appState).forEach { item ->
                     InventoryItemCard(item = item)
                 }
             }

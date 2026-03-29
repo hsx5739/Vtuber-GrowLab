@@ -100,7 +100,9 @@ internal fun InventoryOverviewCard(
 }
 
 @Composable
-internal fun InventoryCharacterContextCard() {
+internal fun InventoryCharacterContextCard(
+    appState: PersistedAppState = AppStateStore.currentState
+) {
     Card(
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF171C39))
@@ -132,7 +134,7 @@ internal fun InventoryCharacterContextCard() {
                 )
                 EventSummaryPill(
                     label = "抽奖券",
-                    value = demoAccountContext.lotteryTicketCount.toString(),
+                    value = appState.lotteryTicketCount.toString(),
                     accent = Color(0xFFD6C7FF),
                     modifier = Modifier.weight(1f)
                 )

@@ -31,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -48,6 +49,7 @@ fun HomeScreen(
     onNavigateToProfile: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val appState by AppStateStore.state.collectAsState()
     val conversationController = remember(context) {
         HomeConversationController(context)
     }
@@ -56,7 +58,7 @@ fun HomeScreen(
         onDispose { conversationController.dispose() }
     }
 
-    val metrics = homeStatusMetrics
+    val metrics = remember(appState) { currentHomeStatusMetrics(appState) }
 
     val scenes = listOf(
         CharacterScene(

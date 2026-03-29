@@ -46,6 +46,7 @@ import com.maincharacter.android.ui.theme.MainCharacterTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AppStateStore.initialize(applicationContext)
         setContent {
             MainCharacterTheme {
                 Surface(

@@ -513,20 +513,29 @@ internal fun findTaskBoardTask(taskId: String): TaskBoardTask? {
     return allTasks.firstOrNull { it.id == taskId }
 }
 
-private object TaskBoardRuntimeStore {
-    var overrides by mutableStateOf<Map<String, TaskBoardTask>>(emptyMap())
-}
-
 private fun resolveTask(task: TaskBoardTask): TaskBoardTask {
-    return TaskBoardRuntimeStore.overrides[task.id] ?: task
+    return resolveTask(task, AppStateStore.currentState)
 }
 
-internal fun currentTaskBoardContent(): TaskBoardContent {
+private fun resolveTask(
+    task: TaskBoardTask,
+    state: PersistedAppState
+): TaskBoardTask {
+    val persisted = state.taskStates[task.id] ?: return task
+    return task.copy(
+        status = persisted.status.toTaskBoardStatus(task.status),
+        progressCurrent = persisted.progressCurrent.coerceAtMost(task.progressTarget)
+    )
+}
+
+internal fun currentTaskBoardContent(
+    state: PersistedAppState = AppStateStore.currentState
+): TaskBoardContent {
     val dailySections = taskBoardContent.dailySections.map { section ->
-        section.copy(tasks = section.tasks.map(::resolveTask))
+        section.copy(tasks = section.tasks.map { resolveTask(it, state) })
     }
-    val weeklyTasks = taskBoardContent.weeklyTasks.map(::resolveTask)
-    val challengeTask = resolveTask(taskBoardContent.challengeTask)
+    val weeklyTasks = taskBoardContent.weeklyTasks.map { resolveTask(it, state) }
+    val challengeTask = resolveTask(taskBoardContent.challengeTask, state)
     val completedWeeklyCount = weeklyTasks.count { it.isFinished }
 
     return taskBoardContent.copy(
@@ -548,62 +557,15 @@ internal fun currentTaskBoardContent(): TaskBoardContent {
 }
 
 internal fun resolveTaskBoardTask(taskId: String): TaskBoardTask? {
-    val board = currentTaskBoardContent()
+    val board = currentTaskBoardContent(AppStateStore.currentState)
     val allTasks = board.dailySections.flatMap { it.tasks } + board.weeklyTasks + board.challengeTask
     return allTasks.firstOrNull { it.id == taskId }
 }
 
 internal fun markTaskCompleted(taskId: String) {
-    val task = resolveTaskBoardTask(taskId) ?: return
-    TaskBoardRuntimeStore.overrides = TaskBoardRuntimeStore.overrides + (
-        task.id to task.copy(
-            status = TaskBoardStatus.COMPLETED,
-            progressCurrent = task.progressTarget
-        )
-    )
+    AppStateStore.completeTask(taskId)
+}
 
-    if (task.sectionKind != TaskBoardSectionKind.DAILY) return
-
-    val weeklyTaskId = when (task.category) {
-        TaskBoardCategory.BOND -> "task_weekly_bond"
-        TaskBoardCategory.VITALITY -> "task_weekly_vitality"
-        TaskBoardCategory.FOCUS -> "task_weekly_focus"
-        TaskBoardCategory.CHALLENGE -> null
-    }
-
-    weeklyTaskId?.let { targetId ->
-        val weeklyTask = resolveTaskBoardTask(targetId) ?: return@let
-        val nextProgress = (weeklyTask.progressCurrent + 1).coerceAtMost(weeklyTask.progressTarget)
-        val nextStatus = when {
-            nextProgress >= weeklyTask.progressTarget -> TaskBoardStatus.CLAIMABLE
-            nextProgress > 0 -> TaskBoardStatus.IN_PROGRESS
-            else -> weeklyTask.status
-        }
-        TaskBoardRuntimeStore.overrides = TaskBoardRuntimeStore.overrides + (
-            weeklyTask.id to weeklyTask.copy(
-                status = nextStatus,
-                progressCurrent = nextProgress
-            )
-        )
-    }
-
-    val completedCategoryCount = currentTaskBoardContent().dailySections
-        .flatMap { it.tasks }
-        .filter { it.isFinished }
-        .map { it.category }
-        .distinct()
-        .count()
-    val challengeTask = resolveTaskBoardTask(taskBoardContent.challengeTask.id) ?: return
-    val challengeProgress = completedCategoryCount.coerceAtMost(challengeTask.progressTarget)
-    val challengeStatus = when {
-        challengeProgress >= challengeTask.progressTarget -> TaskBoardStatus.COMPLETED
-        challengeProgress > 0 -> TaskBoardStatus.IN_PROGRESS
-        else -> TaskBoardStatus.TODO
-    }
-    TaskBoardRuntimeStore.overrides = TaskBoardRuntimeStore.overrides + (
-        challengeTask.id to challengeTask.copy(
-            status = challengeStatus,
-            progressCurrent = challengeProgress
-        )
-    )
+private fun String.toTaskBoardStatus(fallback: TaskBoardStatus): TaskBoardStatus {
+    return runCatching { TaskBoardStatus.valueOf(this) }.getOrElse { fallback }
 }

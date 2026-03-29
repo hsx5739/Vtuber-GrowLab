@@ -23,25 +23,39 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import android.widget.Toast
 
 @Composable
 fun TasksScreen(
     onNavigateBack: () -> Unit = {},
     onNavigateToTaskDetail: (String) -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val appState by AppStateStore.state.collectAsState()
     var selectedTab by remember { mutableStateOf(TaskBoardTab.DAILY) }
-    val board = currentTaskBoardContent()
+    val board = remember(appState) { currentTaskBoardContent(appState) }
     val overview = if (selectedTab == TaskBoardTab.DAILY) board.dailyOverview else board.weeklyOverview
+    val handleTaskClick: (TaskBoardTask) -> Unit = { task ->
+        if (task.sectionKind == TaskBoardSectionKind.WEEKLY) {
+            onNavigateToTaskDetail(task.id)
+        } else if (task.isFinished) {
+            Toast.makeText(context, "今日${task.title}已经完成", Toast.LENGTH_SHORT).show()
+        } else {
+            onNavigateToTaskDetail(task.id)
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -68,7 +82,7 @@ fun TasksScreen(
                 section.tasks.forEach { task ->
                     TaskListCard(
                         task = task,
-                        onClick = { onNavigateToTaskDetail(task.id) }
+                        onClick = { handleTaskClick(task) }
                     )
                 }
             }
@@ -81,14 +95,14 @@ fun TasksScreen(
             )
             ChallengeHighlightCard(
                 task = board.challengeTask,
-                onClick = { onNavigateToTaskDetail(board.challengeTask.id) }
+                onClick = { handleTaskClick(board.challengeTask) }
             )
         } else {
             WeeklyRewardSummaryCard(overview = board.weeklyOverview)
             board.weeklyTasks.forEach { task ->
                 TaskListCard(
                     task = task,
-                    onClick = { onNavigateToTaskDetail(task.id) }
+                    onClick = { handleTaskClick(task) }
                 )
             }
         }
