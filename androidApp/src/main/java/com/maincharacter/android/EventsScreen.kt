@@ -83,7 +83,8 @@ fun EventDetailScreen(
         EventDetailHero(event = event)
         EventBranchSection(
             event = event,
-            onBranchClick = {
+            onBranchClick = { branch ->
+                AppStateStore.applyEventBranchRewards(branch.rewardChips)
                 chapterVideoRes = eventChapterVideoRes(event.id)
             }
         )

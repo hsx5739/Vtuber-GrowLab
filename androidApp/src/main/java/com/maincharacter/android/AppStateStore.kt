@@ -269,6 +269,35 @@ internal object AppStateStore {
         return true
     }
 
+    fun applyEventBranchRewards(rewardChips: List<RewardChipData>) {
+        if (rewardChips.isEmpty()) return
+
+        var nextState = _state.value
+        rewardChips.forEach { chip ->
+            val amount = parseRewardAmount(chip.value) ?: return@forEach
+            nextState = when (chip.label) {
+                "亲密", "羁绊" -> nextState.copy(
+                    bond = (nextState.bond + amount).coerceIn(0, 100)
+                )
+                "魅力", "心境" -> nextState.copy(
+                    charm = (nextState.charm + amount).coerceIn(0, 100)
+                )
+                "元气", "活力" -> nextState.copy(
+                    vitality = (nextState.vitality + amount).coerceIn(0, 100)
+                )
+                "专注" -> nextState.copy(
+                    focus = (nextState.focus + amount).coerceIn(0, 100)
+                )
+                "星尘" -> nextState.copy(
+                    stardustBalance = (nextState.stardustBalance + amount).coerceAtLeast(0)
+                )
+                else -> nextState
+            }
+        }
+
+        saveState(normalizeState(nextState))
+    }
+
     private fun updateWeeklyProgress(
         state: PersistedAppState,
         category: TaskBoardCategory
@@ -977,6 +1006,11 @@ private fun gachaAccentForRarity(rarity: String): Color {
         "R" -> Color(0xFF9ED8FF)
         else -> Color(0xFFFFE37A)
     }
+}
+
+private fun parseRewardAmount(value: String): Int? {
+    val normalized = value.trim().replace("＋", "+").replace("－", "-")
+    return normalized.toIntOrNull()
 }
 
 private fun buildPurchaseMessage(product: ShopProductDefinition): String {
