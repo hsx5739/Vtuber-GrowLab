@@ -41,6 +41,7 @@ internal data class PersistedAppState(
     val inventory: Inventory = defaultInventoryState(),
     val latestGachaResults: List<GachaPullResult> = emptyList(),
     val claimedWeeklyTaskIds: Set<String> = emptySet(),
+    val dailyResetKey: String = currentDateKey(),
     val weeklyResetKey: String = currentWeeklyResetKey()
 )
 
@@ -422,6 +423,7 @@ internal object AppStateStore {
                 }
             )
             put("claimedWeeklyTaskIds", state.claimedWeeklyTaskIds.toList())
+            put("dailyResetKey", state.dailyResetKey)
             put("weeklyResetKey", state.weeklyResetKey)
         }.toString()
     }
@@ -500,6 +502,7 @@ internal object AppStateStore {
             } ?: defaultInventoryState(json.optInt("lotteryTicketCount", demoAccountContext.lotteryTicketCount)),
             latestGachaResults = latestGachaResults,
             claimedWeeklyTaskIds = claimedWeeklyTaskIds,
+            dailyResetKey = json.optString("dailyResetKey", currentDateKey()),
             weeklyResetKey = json.optString("weeklyResetKey", currentWeeklyResetKey())
         )
     }
@@ -549,7 +552,9 @@ internal object AppStateStore {
         state: PersistedAppState,
         today: String = currentDateKey()
     ): PersistedAppState {
-        var normalized = refreshWeeklyStateIfNeeded(state).copy(stardustBalance = TEST_STARDUST_BALANCE)
+        var normalized = refreshDailyStateIfNeeded(state, today)
+        normalized = refreshWeeklyStateIfNeeded(normalized, today)
+        normalized = normalized.copy(stardustBalance = TEST_STARDUST_BALANCE)
         val normalizedSignIn = normalizeSignInState(normalized.signInState, today)
         if (normalizedSignIn != normalized.signInState) {
             normalized = normalized.copy(signInState = normalizedSignIn)
@@ -558,8 +563,36 @@ internal object AppStateStore {
         return syncInventoryState(normalized)
     }
 
-    private fun refreshWeeklyStateIfNeeded(state: PersistedAppState): PersistedAppState {
-        val currentKey = currentWeeklyResetKey()
+    private fun refreshDailyStateIfNeeded(
+        state: PersistedAppState,
+        today: String
+    ): PersistedAppState {
+        if (state.dailyResetKey == today) return state
+
+        val resetTaskIds = taskBoardContent.dailySections
+            .flatMap { it.tasks }
+            .map { it.id } + taskBoardContent.challengeTask.id
+        val resetTaskStates = state.taskStates.toMutableMap().apply {
+            resetTaskIds.forEach { taskId ->
+                val task = findTaskBoardTask(taskId) ?: return@forEach
+                this[taskId] = PersistedTaskState(
+                    status = task.status.name,
+                    progressCurrent = task.progressCurrent
+                )
+            }
+        }
+
+        return state.copy(
+            taskStates = resetTaskStates,
+            dailyResetKey = today
+        )
+    }
+
+    private fun refreshWeeklyStateIfNeeded(
+        state: PersistedAppState,
+        today: String
+    ): PersistedAppState {
+        val currentKey = currentWeeklyResetKey(today)
         if (state.weeklyResetKey == currentKey) return state
 
         val resetWeeklyTaskIds = taskBoardContent.weeklyTasks.map { it.id }.toSet()
@@ -639,10 +672,12 @@ private fun syncSignInTaskState(
     val desiredProgress = if (isSignedToday) signInTask.progressTarget else signInTask.progressCurrent
     val currentTaskState = state.taskStates["task_daily_sign_in"]
 
-    return if (
-        currentTaskState?.status == desiredStatus &&
-        currentTaskState?.progressCurrent == desiredProgress
-    ) {
+    val isTaskStateSynced = currentTaskState?.let { taskState ->
+        taskState.status == desiredStatus &&
+            taskState.progressCurrent == desiredProgress
+    } == true
+
+    return if (isTaskStateSynced) {
         state
     } else {
         state.copy(
@@ -741,6 +776,10 @@ private fun currentWeeklyResetKey(calendar: Calendar = Calendar.getInstance(Loca
         }
     }
     return "$weekYear-$weekOfYear"
+}
+
+private fun currentWeeklyResetKey(today: String): String {
+    return currentWeeklyResetKey(calendarFromDate(today))
 }
 
 internal fun currentHomeStatusMetrics(

@@ -23,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,6 +46,11 @@ fun TasksScreen(
     val context = LocalContext.current
     val appState by AppStateStore.state.collectAsState()
     val selectedTab by TaskBoardUiStateStore.selectedTab.collectAsState()
+
+    LaunchedEffect(Unit) {
+        AppStateStore.refreshForToday()
+    }
+
     val board = remember(appState) { currentTaskBoardContent(appState) }
     val overview = if (selectedTab == TaskBoardTab.DAILY) board.dailyOverview else board.weeklyOverview
     val handleTaskClick: (TaskBoardTask) -> Unit = { task ->

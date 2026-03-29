@@ -22,7 +22,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -43,11 +42,11 @@ fun SignInScreen(
 ) {
     val context = LocalContext.current
     val appState by AppStateStore.state.collectAsState()
-    val todayCalendar = remember { Calendar.getInstance() }
-    val todayKey = remember(todayCalendar.timeInMillis) { formatDateKey(todayCalendar) }
+    val todayCalendar = Calendar.getInstance()
+    val todayKey = formatDateKey(todayCalendar)
     val signInState = appState.signInState
-    val weekEntries = remember(signInState, todayKey) { buildSignInWeekEntries(signInState, todayCalendar) }
-    val milestones = remember(signInState.streak) { buildMilestones(signInState.streak) }
+    val weekEntries = buildSignInWeekEntries(signInState, todayCalendar)
+    val milestones = buildMilestones(signInState.streak)
     val signedToday = signInState.lastSignInDate == todayKey
 
     LaunchedEffect(todayKey) {
