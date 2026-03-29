@@ -56,12 +56,7 @@ fun HomeScreen(
         onDispose { conversationController.dispose() }
     }
 
-    val metrics = listOf(
-        StatusMetric("亲密", "32", R.drawable.ic_relation, Color(0xFFF6B7D2)),
-        StatusMetric("魅力", "70%", R.drawable.ic_home, Color(0xFFAED3FF)),
-        StatusMetric("元气", "68", R.drawable.ic_energy, Color(0xFFC8FF9B)),
-        StatusMetric("专注", "52", R.drawable.ic_focus, Color(0xFFD6C7FF))
-    )
+    val metrics = homeStatusMetrics
 
     val scenes = listOf(
         CharacterScene(
@@ -162,6 +157,27 @@ private fun CharacterStageCard(
                 Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = Color(0x52FFFFFF)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                text = "${demoAccountContext.nickname} · ${demoAccountContext.accountName}",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "角色绑定已生效，任务奖励和背包资产统一写入当前人物上下文",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFFD8DEFF)
+                            )
+                        }
+                    }
                     metrics.chunked(2).forEach { rowMetrics ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),

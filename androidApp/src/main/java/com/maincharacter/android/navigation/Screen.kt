@@ -9,6 +9,18 @@ sealed class Screen(val route: String) {
     object TaskDetail : Screen("task_detail/{taskId}") {
         fun createRoute(taskId: String) = "task_detail/$taskId"
     }
+    object PhotoUpload : Screen("photo_upload/{taskId}") {
+        fun createRoute(taskId: String) = "photo_upload/$taskId"
+    }
+    object PhotoCapture : Screen("photo_capture/{taskId}") {
+        fun createRoute(taskId: String) = "photo_capture/$taskId"
+    }
+    object FocusRecord : Screen("focus_record/{taskId}") {
+        fun createRoute(taskId: String) = "focus_record/$taskId"
+    }
+    object VideoUpload : Screen("video_upload/{taskId}") {
+        fun createRoute(taskId: String) = "video_upload/$taskId"
+    }
     object EventDetail : Screen("event_detail/{eventId}") {
         fun createRoute(eventId: String) = "event_detail/$eventId"
     }

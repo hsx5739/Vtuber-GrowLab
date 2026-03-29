@@ -64,7 +64,7 @@ internal fun InventoryOverviewCard(
                         color = Color.White
                     )
                     Text(
-                        text = "把技能卡、果实、皮肤和碎片收拢在同一页里，方便从抽卡、事件、任务奖励回流查看。",
+                        text = "角色背包统一承接技能、道具、外观和每周任务产出的抽奖券，默认都归当前绑定人物。",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color(0xFFC8D1FF)
                     )
@@ -94,6 +94,48 @@ internal fun InventoryOverviewCard(
                         onClick = { onTabSelected(index) }
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun InventoryCharacterContextCard() {
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF171C39))
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "${demoAccountContext.nickname} 的人物背包",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+            Text(
+                text = "账号 ${demoAccountContext.accountName} 已绑定当前人物，任务奖励、抽奖券和外观穿戴都写入角色上下文。",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFFC8D1FF)
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                EventSummaryPill(
+                    label = "角色 ID",
+                    value = demoAccountContext.characterId.removePrefix("char_"),
+                    accent = Color(0xFFFFD66E),
+                    modifier = Modifier.weight(1f)
+                )
+                EventSummaryPill(
+                    label = "抽奖券",
+                    value = demoAccountContext.lotteryTicketCount.toString(),
+                    accent = Color(0xFFD6C7FF),
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }
@@ -372,10 +414,31 @@ private fun ProfileHeroCard() {
                 color = Color.White
             )
             Text(
-                text = "这里承接签到、抽卡、商店之外的账号与设置信息，也可以慢慢长成宿主档案页。",
+                text = "这里承接账号、角色、属性和权限信息，首版默认一个账号只绑定一个人物。",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color(0xFFC8D1FF)
             )
+            Surface(
+                shape = RoundedCornerShape(18.dp),
+                color = Color(0xFF20264A)
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "${demoAccountContext.nickname} · ${demoAccountContext.accountName}",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "默认外观：${demoAccountContext.equippedAppearanceName} · mood ${demoAccountContext.mood}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFFB8C4F6)
+                    )
+                }
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -497,7 +560,7 @@ private fun ProfileAboutSection() {
                 color = Color(0xFF2A315D)
             )
             Text(
-                text = "主角系统 Demo 目前更偏情绪陪伴和轻养成闭环，后续可以继续接账号同步、隐私政策页和多模态说明。",
+                text = "当前展示口径已经切到账号-人物-属性-背包四层结构，后续可以继续接注册登录、云同步和本地库迁移。",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color(0xFF41506F)
             )

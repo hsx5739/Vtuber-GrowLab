@@ -33,6 +33,8 @@ fun InventoryScreen(
             onTabSelected = { selectedTab = it }
         )
 
+        InventoryCharacterContextCard()
+
         when (selectedTab) {
             0 -> {
                 inventorySkills.forEach { skill ->

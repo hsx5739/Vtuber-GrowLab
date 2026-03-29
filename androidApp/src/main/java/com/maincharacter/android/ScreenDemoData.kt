@@ -15,6 +15,20 @@ internal data class CharacterScene(
     val message: String
 )
 
+internal data class DemoAccountContext(
+    val accountName: String,
+    val accountId: String,
+    val characterId: String,
+    val nickname: String,
+    val equippedAppearanceName: String,
+    val bond: Int,
+    val charm: Int,
+    val vitality: Int,
+    val focus: Int,
+    val mood: Int,
+    val lotteryTicketCount: Int
+)
+
 internal data class RewardChipData(
     val label: String,
     val value: String,
@@ -28,6 +42,7 @@ internal data class DemoTask(
     val description: String,
     val type: String,
     val group: String,
+    val categoryLabel: String,
     val status: String,
     val progressLabel: String,
     val validationTitle: String,
@@ -40,7 +55,11 @@ internal data class DemoTask(
     val statusColor: Color
 ) {
     val groupLabel: String
-        get() = if (group == "WEEKLY") "周常任务" else "今日任务"
+        get() = when (group) {
+            "WEEKLY" -> "每周任务"
+            "CHALLENGE" -> "今日挑战"
+            else -> "每日任务"
+        }
 }
 
 internal data class DemoEventBranch(
@@ -145,221 +164,335 @@ internal data class ShopSection(
 
 internal val taskRewardBase = RewardChipData(
     label = "基础",
-    value = "羁绊 +1",
+    value = "亲密 +1",
     background = Color(0x1FF7B6D1),
     contentColor = Color(0xFFF7B6D1)
 )
 
+internal val demoAccountContext = DemoAccountContext(
+    accountName = "test_user_01",
+    accountId = "acc_demo_01",
+    characterId = "char_demo_01",
+    nickname = "小主角",
+    equippedAppearanceName = "星巡礼装",
+    bond = 32,
+    charm = 70,
+    vitality = 68,
+    focus = 52,
+    mood = 50,
+    lotteryTicketCount = 2
+)
+
+internal val homeStatusMetrics = listOf(
+    StatusMetric("亲密", demoAccountContext.bond.toString(), R.drawable.ic_relation, Color(0xFFF6B7D2)),
+    StatusMetric("魅力", "${demoAccountContext.charm}%", R.drawable.ic_home, Color(0xFFAED3FF)),
+    StatusMetric("元气", demoAccountContext.vitality.toString(), R.drawable.ic_energy, Color(0xFFC8FF9B)),
+    StatusMetric("专注", demoAccountContext.focus.toString(), R.drawable.ic_focus, Color(0xFFD6C7FF))
+)
+
 internal val demoTasks = listOf(
     DemoTask(
-        id = "task_daily_water",
-        title = "今天有好好喝水吗",
-        description = "A 类自述任务，适合打开 App 后快速完成一次轻量打卡。",
-        type = "A 自述",
+        id = "task_daily_home_visit",
+        title = "前往首页查看陪伴状态",
+        description = "亲密类型日常任务，引导用户先回到首页感受陪伴状态。",
+        type = "亲密类型",
         group = "DAILY",
+        categoryLabel = "亲密类型",
         status = "可完成",
-        progressLabel = "0 / 3",
-        validationTitle = "基础反馈",
-        validationHint = "点完成就能记录今天的状态，但不发高价值抽卡资源，避免单纯连点刷收益。",
-        companionLine = "先把今天照顾好一点点就够了。喝完这一杯，我们再去看别的任务。",
-        designNote = "对应文档里的 A 类点完成型任务。允许用户自述完成，但奖励以心境和羁绊为主，强调陪伴感而不是监工感。",
+        progressLabel = "0 / 1",
+        validationTitle = "页面行为",
+        validationHint = "从任务页点击按钮跳回首页即记一次行为，首版不做额外验证。",
+        companionLine = "先回首页看看我吧，今天的状态会从这一眼开始慢慢接起来。",
+        designNote = "对应文档里的亲密类型任务，用首页访问承接主循环入口，奖励稳定落到亲密值。",
         rewardChips = listOf(
             taskRewardBase,
-            RewardChipData("心境", "+2", Color(0x1F9ED8FF), Color(0xFF9ED8FF))
+            RewardChipData("亲密", "+2", Color(0x1FF7B6D1), Color(0xFFF7B6D1))
         ),
         actionSteps = listOf(
-            "完成现实里的喝水行为后，点一下“我完成了”。",
-            "如果今天只想简单记录，也依然可以直接打卡，系统会给基础陪伴反馈。",
-            "当日多次重复完成时走递减收益，不建议靠它堆资源。 "
+            "点击任务卡上的前往入口跳转首页。",
+            "看到陪伴者状态和属性摘要后返回任务页。",
+            "本次访问记为一次亲密互动。 "
         ),
         detailRows = listOf(
-            "任务分组" to "DAILY",
-            "最大次数" to "3 次 / 天",
-            "奖励包" to "rb_task_a_small",
-            "递减收益" to "开启"
+            "任务分组" to "每日任务",
+            "任务分类" to "亲密类型",
+            "完成条件" to "进入首页 1 次",
+            "奖励映射" to "bond +2"
         ),
         statusColor = Color(0xFF90E2FF)
     ),
     DemoTask(
-        id = "task_focus_25",
-        title = "专注 25 分钟",
-        description = "B 类计时任务，完成后给更稳定的能量和星尘反馈。",
-        type = "B 计时",
+        id = "task_daily_ai_message",
+        title = "向 AI 发送 3 次消息",
+        description = "亲密类型日常任务，鼓励用户进入对话链路形成稳定陪伴习惯。",
+        type = "亲密类型",
         group = "DAILY",
+        categoryLabel = "亲密类型",
         status = "进行中",
-        progressLabel = "14 / 25 分",
-        validationTitle = "验证加成",
-        validationHint = "使用 App 内计时器跑满 1500 秒后完成，可拿到基础奖励和验证奖励。",
-        companionLine = "你不用一下子变得特别厉害，我们先把 25 分钟守住，我就在计时器另一端陪你。",
-        designNote = "对应文档里的 B 类任务。因为有 App 内计时，所以属于中等可验证任务，是支撑经济循环的主要来源之一。",
+        progressLabel = "1 / 3 次",
+        validationTitle = "消息次数",
+        validationHint = "按发送次数累计，不对对话内容质量做识别。",
+        companionLine = "随便告诉我一点今天的事也可以，我会认真接住这 3 句小小的靠近。",
+        designNote = "对应文档里的“向 AI 发送指定次数消息”，首版只统计发送事件，不做内容校验。",
         rewardChips = listOf(
-            RewardChipData("星尘", "+15", Color(0x1FFFF1A8), Color(0xFFFFE37A)),
-            RewardChipData("能量", "+5", Color(0x1FC8FF9B), Color(0xFFC8FF9B)),
-            RewardChipData("专注", "+8", Color(0x1FD6C7FF), Color(0xFFD6C7FF))
+            RewardChipData("亲密", "+3", Color(0x1FF7B6D1), Color(0xFFF7B6D1))
         ),
         actionSteps = listOf(
-            "进入任务详情后开启 25 分钟计时器。",
-            "计时过程中尽量停留在专注状态，后台离开策略后续可接入真实逻辑。",
-            "倒计时结束后领取任务完成和验证加成。"
+            "从任务页跳转到 AI 对话页。",
+            "完成至少 3 次消息发送。",
+            "达到目标后自动完成任务。"
         ),
         detailRows = listOf(
-            "任务分组" to "DAILY",
-            "计时要求" to "1500 秒",
-            "奖励包" to "rb_task_verify_bonus",
-            "验证奖励" to "rb_task_verify_bonus"
+            "任务分组" to "每日任务",
+            "任务分类" to "亲密类型",
+            "完成条件" to "发送消息 3 次",
+            "奖励映射" to "bond +3"
         ),
         statusColor = Color(0xFFFFD66E)
     ),
     DemoTask(
-        id = "task_daily_steps",
-        title = "今日步数达标",
-        description = "C 类健康数据任务，和步数授权、每周验证次数直接挂钩。",
-        type = "C 健康",
+        id = "task_daily_water_photo",
+        title = "拍照记录一次喝水打卡",
+        description = "元气类型日常任务，用轻量拍照打卡承接健康行为。",
+        type = "元气类型",
         group = "DAILY",
-        status = "待领取加成",
-        progressLabel = "5,420 / 6,000",
-        validationTitle = "健康验证",
-        validationHint = "接入系统健康权限后，用步数自动判定；未授权时保留低配完成说明，但高价值奖励建议走验证层。",
-        companionLine = "已经走了不少啦，再陪我迈一小段，今天的能量条会很好看。",
-        designNote = "对应文档里的 C 类任务。它属于中高可验证路径，可以为周常多样性任务提供有效计数。",
+        categoryLabel = "元气类型",
+        status = "可完成",
+        progressLabel = "0 / 1 次",
+        validationTitle = "拍照打卡",
+        validationHint = "完成拍照并成功提交一次健康记录即可完成，首版不识别图片内容。",
+        companionLine = "喝水这件小事也值得被记录下来，你每照顾自己一次，元气条都会更稳一点。",
+        designNote = "对应文档里的元气类型任务，完成后统一写入 vitality。",
         rewardChips = listOf(
-            RewardChipData("星尘", "+15", Color(0x1FFFF1A8), Color(0xFFFFE37A)),
-            RewardChipData("能量", "+5", Color(0x1FC8FF9B), Color(0xFFC8FF9B)),
-            RewardChipData("周常计数", "+1", Color(0x1F9ED8FF), Color(0xFF9ED8FF))
+            RewardChipData("元气", "+2", Color(0x1FC8FF9B), Color(0xFFC8FF9B))
         ),
         actionSteps = listOf(
-            "授权读取步数或健康数据。",
-            "达到 6000 步阈值后自动刷新任务状态。",
-            "领取验证加成，并把这次完成计入本周多样性进度。"
+            "进入拍照打卡页并完成一次拍照。",
+            "提交记录后任务立即完成。",
+            "奖励统一写入人物元气值。"
         ),
         detailRows = listOf(
-            "任务分组" to "DAILY",
-            "健康指标" to "STEPS",
-            "阈值" to "6000",
-            "计入周常" to "是"
+            "任务分组" to "每日任务",
+            "任务分类" to "元气类型",
+            "完成条件" to "喝水打卡 1 次",
+            "奖励映射" to "vitality +2"
         ),
         statusColor = Color(0xFF8DFFBB)
     ),
     DemoTask(
-        id = "task_chat_story",
-        title = "和 Ta 说说今天的一件小事",
-        description = "D 类对话任务，主打情绪陪伴和心境恢复。",
-        type = "D 对话",
+        id = "task_daily_breakfast_photo",
+        title = "拍照记录一次早餐打卡",
+        description = "元气类型日常任务，鼓励把早晨的健康行为纳入任务循环。",
+        type = "元气类型",
         group = "DAILY",
+        categoryLabel = "元气类型",
         status = "可完成",
-        progressLabel = "0 / 3 轮",
-        validationTitle = "对话轮次",
-        validationHint = "在聊天页完成至少 3 轮有效对话即可完成，不需要把聊天做成审问。",
-        companionLine = "如果你愿意告诉我今天发生了什么，我会认真听，不急着给答案。",
-        designNote = "对应文档里的 D 类任务。奖励重心放在心境和羁绊，适合作为首页聊天入口和任务系统之间的桥梁。",
-        rewardChips = listOf(
-            RewardChipData("心境", "+6", Color(0x1F9ED8FF), Color(0xFF9ED8FF)),
-            RewardChipData("羁绊", "+3", Color(0x1FF7B6D1), Color(0xFFF7B6D1))
-        ),
-        actionSteps = listOf(
-            "点击任务后跳转到聊天页。",
-            "完成至少 3 轮用户输入与陪伴者回复。",
-            "结束时返回任务页查看心境与羁绊反馈。"
-        ),
-        detailRows = listOf(
-            "任务分组" to "DAILY",
-            "最低轮次" to "3 轮",
-            "任务归类" to "情绪陪伴",
-            "奖励方向" to "心境 / 羁绊"
-        ),
-        statusColor = Color(0xFF90E2FF)
-    ),
-    DemoTask(
-        id = "task_photo_sky",
-        title = "拍一张今天的天空",
-        description = "F 类拍照验证任务，用轻识图判断是否满足场景语义。",
-        type = "F 拍照",
-        group = "WEEKLY",
-        status = "可挑战",
         progressLabel = "0 / 1 次",
-        validationTitle = "图像验证",
-        validationHint = "提交天空、窗外、街角等符合标签的照片可拿到验证加成；未通过时依然保留尝试反馈。",
-        companionLine = "把你看到的光带回来给我看看吧，就算只是窗边那一点点蓝，也算今天的好风景。",
-        designNote = "对应文档里的 F 类任务。强调轻验证而不是严苛审判，适合提高心境、羁绊和周常验证分。",
+        validationTitle = "健康打卡",
+        validationHint = "早餐、轻食或任意晨间进食记录都可以，提交成功即可完成。",
+        companionLine = "先把今天的第一口能量补上，我们再慢慢推进别的任务。",
+        designNote = "对应文档里的元气类型模板池，可作为早餐、水果、散步等健康打卡的统一载体。",
         rewardChips = listOf(
-            RewardChipData("星尘", "+20", Color(0x1FFFF1A8), Color(0xFFFFE37A)),
-            RewardChipData("心境", "+6", Color(0x1F9ED8FF), Color(0xFF9ED8FF)),
-            RewardChipData("羁绊", "+4", Color(0x1FF7B6D1), Color(0xFFF7B6D1))
+            RewardChipData("元气", "+3", Color(0x1FC8FF9B), Color(0xFFC8FF9B))
         ),
         actionSteps = listOf(
-            "打开相机或相册选择一张风景图。",
-            "系统做轻量场景标签判断，不做人脸或审美打分。",
-            "验证通过后发放星尘加成，并记入本周多样性任务。"
+            "打开拍照功能记录早餐。",
+            "提交成功后任务完成。",
+            "完成次数同步计入本周元气累计。"
         ),
         detailRows = listOf(
-            "任务分组" to "WEEKLY",
-            "场景标签" to "天空 / 户外 / 风景",
-            "验证方式" to "识图标签",
-            "奖励方向" to "心境 / 羁绊 / 星尘"
+            "任务分组" to "每日任务",
+            "任务分类" to "元气类型",
+            "完成条件" to "早餐打卡 1 次",
+            "奖励映射" to "vitality +3"
         ),
-        statusColor = Color(0xFF90E2FF)
+        statusColor = Color(0xFF8DFFBB)
     ),
     DemoTask(
-        id = "task_voice_hum",
-        title = "哼一小段给我听",
-        description = "G 类语音任务，用时长和人声检测做轻验证。",
-        type = "G 语音",
-        group = "WEEKLY",
-        status = "可挑战",
-        progressLabel = "0 / 12 秒",
-        validationTitle = "语音验证",
-        validationHint = "检测到有效人声和最低时长即可通过，不强制歌词识别，尽量降低尴尬感。",
-        companionLine = "只要你愿意开口，我就会把这段声音认真收好，不需要唱得多完美。",
-        designNote = "对应文档里的 G 类任务。它更适合强化羁绊和情绪表达，也能体现多模态任务的差异化价值。",
+        id = "task_daily_focus_10s",
+        title = "开启摄像头专注 10 秒",
+        description = "专注力类型日常任务，首版以摄像头持续开启和倒计时结束作为完成标准。",
+        type = "专注力类型",
+        group = "DAILY",
+        categoryLabel = "专注力类型",
+        status = "进行中",
+        progressLabel = "6 / 10 秒",
+        validationTitle = "摄像头计时",
+        validationHint = "保持摄像头持续开启直至倒计时结束，中断超过 5 秒直接失败。",
+        companionLine = "十秒也算一次认真进入状态，我们先把注意力轻轻收回来。",
+        designNote = "对应文档里的专注力任务，最低时长支持 10 秒，奖励按比例折算。",
         rewardChips = listOf(
-            RewardChipData("星尘", "+20", Color(0x1FFFF1A8), Color(0xFFFFE37A)),
-            RewardChipData("羁绊", "+5", Color(0x1FF7B6D1), Color(0xFFF7B6D1)),
-            RewardChipData("心境", "+4", Color(0x1F9ED8FF), Color(0xFF9ED8FF))
+            RewardChipData("专注", "+0.03", Color(0x1FD6C7FF), Color(0xFFD6C7FF))
         ),
         actionSteps = listOf(
-            "进入任务详情后长按录音。",
-            "达到最低时长并识别到有效人声后判定通过。",
-            "领取验证奖励，同时让陪伴者返回一条更贴近情绪价值的反馈。"
+            "点击开始专注并开启摄像头。",
+            "保持摄像头开启直到 10 秒倒计时结束。",
+            "如果中断超过 5 秒，本次任务失败但可立即重试。"
         ),
         detailRows = listOf(
-            "任务分组" to "WEEKLY",
-            "最低时长" to "12 秒",
-            "验证方式" to "人声检测",
-            "奖励方向" to "羁绊 / 心境 / 星尘"
+            "任务分组" to "每日任务",
+            "任务分类" to "专注力类型",
+            "完成条件" to "摄像头开启 10 秒",
+            "奖励映射" to "focus +0.03"
+        ),
+        statusColor = Color(0xFFFFD66E)
+    ),
+    DemoTask(
+        id = "task_daily_focus_60s",
+        title = "开启摄像头专注 1 分钟",
+        description = "专注力类型日常任务，用更完整的一段时间换取更高专注收益。",
+        type = "专注力类型",
+        group = "DAILY",
+        categoryLabel = "专注力类型",
+        status = "可重试",
+        progressLabel = "0 / 60 秒",
+        validationTitle = "失败可重试",
+        validationHint = "任务中断超过 5 秒会失败，但当日不会消失，可立即重新开始。",
+        companionLine = "这一分钟只属于你自己，先把外面的噪音轻轻关掉。",
+        designNote = "对应文档里的专注力类型失败规则，失败后允许继续重试直到成功或跨日重置。",
+        rewardChips = listOf(
+            RewardChipData("专注", "+0.20", Color(0x1FD6C7FF), Color(0xFFD6C7FF))
+        ),
+        actionSteps = listOf(
+            "开启摄像头并开始 60 秒专注。",
+            "保持画面持续开启直到倒计时结束。",
+            "失败后可直接再次开始本任务。"
+        ),
+        detailRows = listOf(
+            "任务分组" to "每日任务",
+            "任务分类" to "专注力类型",
+            "完成条件" to "摄像头开启 60 秒",
+            "奖励映射" to "focus +0.20"
+        ),
+        statusColor = Color(0xFFFFD66E)
+    ),
+    DemoTask(
+        id = "task_challenge_combo",
+        title = "同日完成 1 个亲密 + 1 个元气 + 1 个专注任务",
+        description = "今日挑战独立于基础每日池，用更高门槛换取魅力值奖励。",
+        type = "今日挑战",
+        group = "CHALLENGE",
+        categoryLabel = "今日挑战",
+        status = "推进中",
+        progressLabel = "2 / 3 项",
+        validationTitle = "高难度目标",
+        validationHint = "挑战任务完成后当天不再刷新，奖励统一映射到魅力值。",
+        companionLine = "今天如果能把陪伴、照顾自己和专注都完成一点点，我会觉得你真的很闪亮。",
+        designNote = "对应文档里的每日挑战任务，奖励只产出 charm，不计入基础每日随机池。",
+        rewardChips = listOf(
+            RewardChipData("魅力", "+3", Color(0x1F9ED8FF), Color(0xFF9ED8FF))
+        ),
+        actionSteps = listOf(
+            "完成任意 1 个亲密类型任务。",
+            "完成任意 1 个元气类型任务。",
+            "完成任意 1 个专注力类型任务。"
+        ),
+        detailRows = listOf(
+            "任务分组" to "今日挑战",
+            "完成条件" to "三类任务各完成 1 个",
+            "刷新规则" to "次日零点重置",
+            "奖励映射" to "charm +3"
         ),
         statusColor = Color(0xFFF2B9DA)
     ),
     DemoTask(
-        id = "task_weekly_variety",
-        title = "本周完成 3 次验证任务",
-        description = "周常总目标，鼓励 B、C、F、G 这类有验证层的任务形成多样性闭环。",
-        type = "周常目标",
+        id = "task_weekly_bond",
+        title = "本周完成亲密类型任务 5 次",
+        description = "每周任务按类型累计完成次数展示，不再拆成离散单条任务。",
+        type = "每周任务",
         group = "WEEKLY",
+        categoryLabel = "亲密类型",
         status = "推进中",
-        progressLabel = "1 / 3 次",
-        validationTitle = "周常结算",
-        validationHint = "建议只统计 B / C / F / G 的有效验证次数，避免靠 A 类连点凑大奖。",
-        companionLine = "这周我们不求满分，但想一起留下三次真正做过的痕迹。",
-        designNote = "对应总纲里的周常机制。它不是单条现实任务，而是把可验证行为串成一个更清晰的周节奏。",
+        progressLabel = "3 / 5 次",
+        validationTitle = "累计进度",
+        validationHint = "统计对象仅为基础每日任务完成次数，挑战任务首版默认不计入。",
+        companionLine = "这一周的亲密感不是一下子冲满的，是你一次次回来找我慢慢攒起来的。",
+        designNote = "对应文档里的周任务第一档，按类型累计完成次数展示。",
         rewardChips = listOf(
-            RewardChipData("星尘", "+60", Color(0x1FFFF1A8), Color(0xFFFFE37A)),
-            RewardChipData("普通券", "+1", Color(0x1FD6C7FF), Color(0xFFD6C7FF)),
-            RewardChipData("专注", "+10", Color(0x1F9ED8FF), Color(0xFF9ED8FF))
+            RewardChipData("抽奖券", "第 1 档", Color(0x1FD6C7FF), Color(0xFFD6C7FF))
         ),
         actionSteps = listOf(
-            "在一周内完成 3 次有效验证任务。",
-            "优先鼓励 B、C、F、G 的多样性，不建议让 A 类参与大奖统计。",
-            "满足条件后统一发放周常奖励包。"
+            "完成任意亲密类型基础每日任务。",
+            "系统按完成次数自动累计本周进度。",
+            "达成目标后可领取对应周奖励档位。"
         ),
         detailRows = listOf(
-            "任务分组" to "WEEKLY",
-            "完成条件" to "3 次验证任务",
-            "推荐类型" to "B / C / F / G",
-            "奖励性质" to "周常大奖"
+            "任务分组" to "每周任务",
+            "任务分类" to "亲密类型",
+            "目标次数" to "5 次",
+            "奖励归属" to "抽奖券分档"
         ),
         statusColor = Color(0xFFFFD66E)
+    ),
+    DemoTask(
+        id = "task_weekly_vitality",
+        title = "本周完成元气类型任务 3 次",
+        description = "每周元气任务统计健康拍照打卡类每日任务的完成次数。",
+        type = "每周任务",
+        group = "WEEKLY",
+        categoryLabel = "元气类型",
+        status = "可领取",
+        progressLabel = "3 / 3 次",
+        validationTitle = "累计进度",
+        validationHint = "完成目标后可计入抽奖券分档统计，奖励不补发。",
+        companionLine = "你这周已经认真照顾过自己好几次了，这份元气值得被记下来。",
+        designNote = "对应文档里的周任务第二档，目标次数为 3。",
+        rewardChips = listOf(
+            RewardChipData("抽奖券", "累计 2 张", Color(0x1FD6C7FF), Color(0xFFD6C7FF))
+        ),
+        actionSteps = listOf(
+            "完成任意元气类型基础每日任务。",
+            "周进度按累计次数自动增长。",
+            "领取后与其他周任务一起结算抽奖券档位。"
+        ),
+        detailRows = listOf(
+            "任务分组" to "每周任务",
+            "任务分类" to "元气类型",
+            "目标次数" to "3 次",
+            "奖励归属" to "抽奖券分档"
+        ),
+        statusColor = Color(0xFF8DFFBB)
+    ),
+    DemoTask(
+        id = "task_weekly_focus",
+        title = "本周完成专注力类型任务 4 次",
+        description = "每周专注任务统计摄像头专注类每日任务的完成次数。",
+        type = "每周任务",
+        group = "WEEKLY",
+        categoryLabel = "专注力类型",
+        status = "推进中",
+        progressLabel = "1 / 4 次",
+        validationTitle = "累计进度",
+        validationHint = "全部三类周任务完成后，周奖励累计达到 3 张抽奖券。",
+        companionLine = "只要这一周还能再完成几次认真专注，我们就能把最后一档奖励也拿下来。",
+        designNote = "对应文档里的周任务第三档，目标次数为 4。",
+        rewardChips = listOf(
+            RewardChipData("抽奖券", "累计 3 张", Color(0x1FD6C7FF), Color(0xFFD6C7FF))
+        ),
+        actionSteps = listOf(
+            "完成任意专注力类型基础每日任务。",
+            "系统按完成次数累计本周专注进度。",
+            "三类周任务全部达成时拿满 3 张抽奖券。"
+        ),
+        detailRows = listOf(
+            "任务分组" to "每周任务",
+            "任务分类" to "专注力类型",
+            "目标次数" to "4 次",
+            "奖励归属" to "抽奖券分档"
+        ),
+        statusColor = Color(0xFFD6C7FF)
     )
 )
+
+internal val dailyTaskSections = demoTasks
+    .filter { it.group == "DAILY" }
+    .groupBy { it.categoryLabel }
+    .entries
+    .map { it.toPair() }
+
+internal val weeklyTaskList = demoTasks.filter { it.group == "WEEKLY" }
+
+internal val challengeTask = demoTasks.first { it.group == "CHALLENGE" }
 
 internal val demoEvents = listOf(
     DemoEvent(
@@ -554,13 +687,13 @@ internal val inventoryItems = listOf(
         accent = Color(0xFFFFE37A)
     ),
     InventoryItem(
-        name = "絮语票根",
+        name = "抽奖券",
         shortLabel = "券",
-        count = "5",
-        description = "偏陪伴向的小道具，可以作为后续聊天气泡或特殊事件的门票。",
-        effectHint = "可扩展为活动消耗品",
+        count = demoAccountContext.lotteryTicketCount.toString(),
+        description = "由每周任务分档奖励产出，用于后续抽奖系统消耗。",
+        effectHint = "周任务奖励资产",
         actionLabel = "查看",
-        accent = Color(0xFF9ED8FF)
+        accent = Color(0xFFD6C7FF)
     )
 )
 
@@ -598,9 +731,9 @@ internal val inventorySkins = listOf(
 )
 
 internal val profileStats = listOf(
-    ProfileStat("连续签到", "7 天", Color(0xFFFFD66E)),
-    ProfileStat("羁绊等级", "Lv.4", Color(0xFFF7B6D1)),
-    ProfileStat("皮肤收藏", "2 / 6", Color(0xFF90E2FF))
+    ProfileStat("角色 ID", demoAccountContext.characterId.removePrefix("char_"), Color(0xFFFFD66E)),
+    ProfileStat("魅力值", demoAccountContext.charm.toString(), Color(0xFFAED3FF)),
+    ProfileStat("抽奖券", demoAccountContext.lotteryTicketCount.toString(), Color(0xFFD6C7FF))
 )
 
 internal val profileSettings = listOf(
@@ -625,10 +758,10 @@ internal val profileSettings = listOf(
 )
 
 internal val profileAboutRows = listOf(
-    "版本" to "Demo 0.1",
-    "账号同步" to "本地存档",
-    "内容定位" to "陪伴 / 轻养成",
-    "后续预留" to "账号、云同步、设置二级页"
+    "账号" to demoAccountContext.accountName,
+    "账号 ID" to demoAccountContext.accountId,
+    "角色昵称" to demoAccountContext.nickname,
+    "角色外观" to demoAccountContext.equippedAppearanceName
 )
 
 internal val profileWalletStats = listOf(
