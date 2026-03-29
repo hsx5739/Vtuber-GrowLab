@@ -1,5 +1,9 @@
 package com.maincharacter.android
 
+import android.media.MediaPlayer
+import android.net.Uri
+import android.widget.MediaController
+import android.widget.VideoView
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -9,8 +13,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
 @Composable
 fun EventsScreen(
     onNavigateBack: () -> Unit = {},
@@ -53,6 +60,7 @@ fun EventDetailScreen(
     onNavigateBack: () -> Unit = {}
 ) {
     val event = demoEvents.firstOrNull { it.id == eventId }
+    var chapterVideoRes by remember(eventId) { mutableStateOf<Int?>(null) }
 
     if (event == null) {
         PlaceholderScreen(
@@ -73,7 +81,12 @@ fun EventDetailScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         EventDetailHero(event = event)
-        EventBranchSection(event = event)
+        EventBranchSection(
+            event = event,
+            onBranchClick = {
+                chapterVideoRes = eventChapterVideoRes(event.id)
+            }
+        )
         EventResolutionSection(event = event)
         EventCompanionSection(event = event)
         EventComplianceSection()
@@ -84,6 +97,14 @@ fun EventDetailScreen(
         ) {
             Text("返回事件列表")
         }
+    }
+
+    chapterVideoRes?.let { videoRes ->
+        EventChapterVideoDialog(
+            videoRes = videoRes,
+            chapterTitle = event.title,
+            onDismiss = { chapterVideoRes = null }
+        )
     }
 }
 @Composable
@@ -366,7 +387,10 @@ private fun EventDetailHero(event: DemoEvent) {
 }
 
 @Composable
-private fun EventBranchSection(event: DemoEvent) {
+private fun EventBranchSection(
+    event: DemoEvent,
+    onBranchClick: (DemoEventBranch) -> Unit
+) {
     Card(
         shape = RoundedCornerShape(26.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF171C39))
@@ -388,6 +412,7 @@ private fun EventBranchSection(event: DemoEvent) {
             )
             event.branches.forEach { branch ->
                 Surface(
+                    modifier = Modifier.clickable { onBranchClick(branch) },
                     shape = RoundedCornerShape(20.dp),
                     color = Color(0xFF20264A)
                 ) {
@@ -444,6 +469,105 @@ private fun EventBranchSection(event: DemoEvent) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun EventChapterVideoDialog(
+    videoRes: Int,
+    chapterTitle: String,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF11162F))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = chapterTitle,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Text(
+                            text = "当前章节分支共用同一段剧情视频",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFFB8C4F6)
+                        )
+                    }
+                    TextButton(onClick = onDismiss) {
+                        Text("关闭")
+                    }
+                }
+                ChapterVideoPlayer(
+                    videoRes = videoRes,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(640.dp)
+                )
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("关闭播放器")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChapterVideoPlayer(
+    videoRes: Int,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val videoUri = remember(videoRes) {
+        Uri.parse("android.resource://${context.packageName}/$videoRes")
+    }
+
+    AndroidView(
+        modifier = modifier,
+        factory = { viewContext ->
+            VideoView(viewContext).apply {
+                val controller = MediaController(viewContext).also {
+                    it.setAnchorView(this)
+                }
+                setMediaController(controller)
+                setVideoURI(videoUri)
+                setOnPreparedListener { mediaPlayer: MediaPlayer ->
+                    mediaPlayer.isLooping = true
+                    start()
+                    controller.show(0)
+                }
+            }
+        },
+        update = { videoView ->
+            videoView.setVideoURI(videoUri)
+            videoView.start()
+        }
+    )
+}
+
+private fun eventChapterVideoRes(eventId: String): Int? {
+    return when (eventId) {
+        "evt_chapter_01_meet" -> R.raw.video01
+        "evt_chapter_02_growth" -> R.raw.video02
+        "evt_chapter_03_battle" -> R.raw.video03
+        "evt_chapter_04_farewell" -> R.raw.video04
+        else -> null
     }
 }
 
