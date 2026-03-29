@@ -19,7 +19,7 @@ fun EventsScreen(
     var selectedFilter by remember { mutableIntStateOf(0) }
     val filteredEvents = when (selectedFilter) {
         1 -> demoEvents.filter { it.unread }
-        2 -> demoEvents.filter { it.requiresSkill }
+        2 -> demoEvents.filterNot { it.unread }
         else -> demoEvents
     }
 
@@ -102,15 +102,10 @@ private fun EventOverviewCard(
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Text(
-                text = "系统沙盘",
+                text = "系统事件",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
-            )
-            Text(
-                text = "事件页承接 H 类互动，重点是虚构引子、分支抉择、技能联动和轻量结算，不做真实预警式压迫感。",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFFC8D1FF)
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -123,13 +118,13 @@ private fun EventOverviewCard(
                     onClick = { onFilterSelected(0) }
                 )
                 EventFilterChip(
-                    label = "未读",
+                    label = "待处理",
                     selected = selectedFilter == 1,
                     modifier = Modifier.weight(1f),
                     onClick = { onFilterSelected(1) }
                 )
                 EventFilterChip(
-                    label = "技能联动",
+                    label = "已经处理",
                     selected = selectedFilter == 2,
                     modifier = Modifier.weight(1f),
                     onClick = { onFilterSelected(2) }
@@ -387,7 +382,7 @@ private fun EventBranchSection(event: DemoEvent) {
                 color = Color.White
             )
             Text(
-                text = "文档里的 H 类强调 2 到 3 个选项、技能联动、低惩罚和短反馈，这里先按展示态把分支结构铺开。",
+                text = "系统事件延续 H 类设计方向，保留 2 到 3 个选项、技能联动、低惩罚和短反馈，让章节推进更像养成剧情中的一段互动。",
                 style = MaterialTheme.typography.bodySmall,
                 color = Color(0xFFC8D1FF)
             )
@@ -543,7 +538,7 @@ private fun EventComplianceSection() {
                 color = Color(0xFF9EF7FF)
             )
             Text(
-                text = "事件页面统一用“系统沙盘 / 虚构剧情”语气，不模仿真实灾害预警、政务通知或现实安全提示。",
+                text = "事件页面统一使用“系统事件 / 虚构剧情”语气，不模仿真实灾害预警、政务通知或现实安全提示。",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color(0xFFC8F8FF)
             )

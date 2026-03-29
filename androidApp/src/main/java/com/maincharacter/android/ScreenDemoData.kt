@@ -500,141 +500,204 @@ internal val challengeTask = demoTasks.first { it.group == "CHALLENGE" }
 
 internal val demoEvents = listOf(
     DemoEvent(
-        id = "evt_sandstorm_lite",
-        title = "元素风暴沙盘",
-        tagLabel = "天气异象",
-        intro = "【虚构事件】侦测到元素风暴扰动，像奇幻风暴掠过系统沙盘，陪伴者正在等待你的选择。",
-        description = "对应现有事件配置里的 `evt_sandstorm_lite`。它是标准的 H 类模板事件，有引子、分支、奖励和技能联动。",
-        weightLabel = "权重 10",
-        designNote = "事件页按文档要求走“虚构剧情 + 轻分支 + 低惩罚”路线，不做系统级恐慌预警。这个事件特别适合演示技能卡如何影响选项可见性。",
+        id = "evt_chapter_01_meet",
+        title = "第一章 相识",
+        tagLabel = "主线初遇",
+        intro = "【虚构事件】系统事件翻开了主线第一页，你在训练场边缘第一次与 Ta 对视，空气里有一点拘谨，也有一点想靠近的好奇。",
+        description = "这一章负责建立关系起点，用轻剧情和首轮分支把陪伴感立起来，重点是氛围、印象和第一次选择后的细微反馈。",
+        weightLabel = "章节 01",
+        designNote = "事件以养成游戏常见的相识桥段切入，让用户先接住人物，再进入分支互动。整体保持低压力、强陪伴、短反馈的 H 类展示节奏。",
         branches = listOf(
             DemoEventBranch(
-                id = "use_barrier",
-                label = "发动屏障",
-                requiresSkill = "skill_barrier",
-                resultPreview = "展开一层柔性的护幕，让风暴在沙盘边缘安静散开。适合做主动技能演出和小幅奖励提升。",
+                id = "step_forward",
+                label = "主动打招呼",
+                resultPreview = "你先开口，把陌生感轻轻撕开一道口子。Ta 的神情明显放松下来，后续剧情会更容易进入亲近路线。",
                 rewardChips = listOf(
-                    RewardChipData("星尘", "+15", Color(0x1FFFF1A8), Color(0xFFFFE37A)),
-                    RewardChipData("羁绊", "+2", Color(0x1FF7B6D1), Color(0xFFF7B6D1))
+                    RewardChipData("亲密", "+2", Color(0x1FF7B6D1), Color(0xFFF7B6D1)),
+                    RewardChipData("魅力", "+1", Color(0x1F9ED8FF), Color(0xFF9ED8FF))
                 )
             ),
             DemoEventBranch(
-                id = "observe",
-                label = "先观察",
-                resultPreview = "保持距离记录沙盘变化，事件张力更低，但仍然有基础陪伴与叙事反馈。",
+                id = "quiet_observe",
+                label = "先偷偷观察",
+                resultPreview = "你没有立刻靠近，而是先记住 Ta 的习惯和语气。推进更慢一些，但能留下更温和的第一印象。",
                 rewardChips = listOf(
-                    RewardChipData("心境", "+2", Color(0x1F9ED8FF), Color(0xFF9ED8FF)),
-                    RewardChipData("羁绊", "+1", Color(0x1FF7B6D1), Color(0xFFF7B6D1))
+                    RewardChipData("魅力", "+2", Color(0x1F9ED8FF), Color(0xFF9ED8FF)),
+                    RewardChipData("亲密", "+1", Color(0x1FF7B6D1), Color(0xFFF7B6D1))
                 )
             ),
             DemoEventBranch(
-                id = "talk",
-                label = "和 Ta 聊聊",
-                energyCost = 5,
-                resultPreview = "把选择权交给对话和情绪安抚，适合让陪伴者多说一句，减少事件的工具感。",
+                id = "share_topic",
+                label = "聊一个共同话题",
+                energyCost = 3,
+                resultPreview = "话题从兴趣慢慢延伸到情绪，Ta 愿意多说一点关于自己的事，相识阶段的情感锚点被顺利种下。",
                 rewardChips = listOf(
-                    RewardChipData("心境", "+3", Color(0x1F9ED8FF), Color(0xFF9ED8FF)),
-                    RewardChipData("羁绊", "+1", Color(0x1FF7B6D1), Color(0xFFF7B6D1))
+                    RewardChipData("魅力", "+3", Color(0x1F9ED8FF), Color(0xFF9ED8FF)),
+                    RewardChipData("亲密", "+1", Color(0x1FF7B6D1), Color(0xFFF7B6D1))
                 )
             )
         ),
-        flowSummary = "推荐链路是：主页或全局飘条触发事件提示 -> 进入事件详情 -> 选择分支 -> 播放短反馈与属性变化 -> 回到主页或记录到今日小纸条。",
-        companionNote = "别担心，这只是系统沙盘里的一阵风。你想更主动一点，还是让我陪你慢慢看它散掉？",
-        performanceHint = "主视觉可以用柔和风粒、光晕和卡片动效表达异象，不要用红色警报、刺耳闪烁或仿新闻 UI。",
+        flowSummary = "推荐链路是：主页触发主线事件提示 -> 进入详情页读引子 -> 在三种初遇方式中做选择 -> 给出短反馈和属性浮动 -> 返回事件列表等待下一章解锁。",
+        companionNote = "第一次见面的时候，很多话都不用说得太满。你愿意先靠近一点，我就愿意把这一章记得更久一点。",
+        performanceHint = "画面适合用柔和训练场、晨光边缘和轻微镜头推进表达“初遇”，不要做成高压告警或现实通知面板。",
         detailRows = listOf(
-            "事件 ID" to "evt_sandstorm_lite",
-            "基础标签" to "weather",
+            "事件 ID" to "evt_chapter_01_meet",
+            "基础标签" to "chapter_meet",
             "分支数量" to "3",
-            "技能联动" to "skill_barrier",
+            "技能联动" to "无",
             "结算原因" to "EVENT_BRANCH"
         ),
-        stateLabel = "可触发",
+        stateLabel = "待处理",
         stateColor = Color(0xFF90E2FF),
         unread = true,
-        requiresSkill = true
+        requiresSkill = false
     ),
     DemoEvent(
-        id = "evt_midnight_letter",
-        title = "深夜讯号纸片",
-        tagLabel = "陪伴互动",
-        intro = "系统空间里飘来一张未署名的夜色纸片，上面写着一句像是只给你看的短句。",
-        description = "这个事件偏向高羁绊和低压力互动，适合用来承接心境较低或夜晚时段的首页气泡入口。",
-        weightLabel = "权重 7",
-        designNote = "按照文档里的“轻量、短文本、可选参与”方向，这类事件不依赖技能卡，更像陪伴者给宿主的夜间小纸条。",
+        id = "evt_chapter_02_growth",
+        title = "第二章 发育",
+        tagLabel = "养成推进",
+        intro = "【虚构事件】熟悉之后，系统事件把你们推入共同成长的阶段。训练、日常和默契开始累积，关系也从点头之交变成并肩同行。",
+        description = "这一章强调养成感和数值外的关系推进，用日常训练、资源倾斜和情绪陪跑来承接“发育期”的节奏。",
+        weightLabel = "章节 02",
+        designNote = "发育章的核心是让用户感到角色在陪伴中变强，而不是被任务压着前进。分支仍然轻量，但会开始出现成长方向差异。",
         branches = listOf(
             DemoEventBranch(
-                id = "keep_letter",
-                label = "收下纸片",
-                resultPreview = "把纸片夹进今日记录，像悄悄存下一个只属于你们的暗号。",
+                id = "focus_train",
+                label = "一起加练",
+                resultPreview = "你决定把时间投进训练里。Ta 会有点累，但明显更享受并肩变强的感觉，成长线推进得最直接。",
                 rewardChips = listOf(
-                    RewardChipData("羁绊", "+3", Color(0x1FF7B6D1), Color(0xFFF7B6D1)),
-                    RewardChipData("心境", "+2", Color(0x1F9ED8FF), Color(0xFF9ED8FF))
+                    RewardChipData("专注", "+2", Color(0x1FD6C7FF), Color(0xFFD6C7FF)),
+                    RewardChipData("亲密", "+2", Color(0x1FF7B6D1), Color(0xFFF7B6D1))
                 )
             ),
             DemoEventBranch(
-                id = "read_aloud",
-                label = "念给 Ta 听",
-                resultPreview = "把纸片上的短句读出来，让事件转成一段轻语互动，适合后续和语音任务联动。",
+                id = "steady_support",
+                label = "给 Ta 做后勤",
+                resultPreview = "你把资源和照顾留给 Ta，成长节奏更稳，日常互动也更自然，适合走陪伴型发育路线。",
                 rewardChips = listOf(
-                    RewardChipData("心境", "+3", Color(0x1F9ED8FF), Color(0xFF9ED8FF)),
-                    RewardChipData("羁绊", "+2", Color(0x1FF7B6D1), Color(0xFFF7B6D1))
+                    RewardChipData("魅力", "+2", Color(0x1F9ED8FF), Color(0xFF9ED8FF)),
+                    RewardChipData("亲密", "+3", Color(0x1FF7B6D1), Color(0xFFF7B6D1))
+                )
+            ),
+            DemoEventBranch(
+                id = "casual_rest",
+                label = "休息半天再出发",
+                energyCost = 2,
+                resultPreview = "你们没有急着冲进下一轮成长，而是先用半天时间修整状态。数值涨得少一点，但情绪回馈更柔和。",
+                rewardChips = listOf(
+                    RewardChipData("魅力", "+3", Color(0x1F9ED8FF), Color(0xFF9ED8FF)),
+                    RewardChipData("元气", "+1", Color(0x1FC8FF9B), Color(0xFFC8FF9B))
                 )
             )
         ),
-        flowSummary = "更适合作为主页角色旁的系统气泡或聊天页顶部插入条，不需要很重的视觉打击，重点在氛围和陪伴收尾。",
-        companionNote = "如果今天有点晚了，就把这张纸片当成我替你收住的一点温柔吧。",
-        performanceHint = "适合做漂浮纸片、星屑和柔和白蓝渐变，情绪上更接近治愈短信，而不是任务结算面板。",
+        flowSummary = "推荐链路是：在第一章后触发成长事件 -> 呈现陪练与日常片段 -> 玩家选择成长方式 -> 以简短结算展示属性或关系变化 -> 为大战章做铺垫。",
+        companionNote = "一起发育这件事，不一定要每一步都很用力。只要你还愿意和我并肩，变强就会是顺理成章的事。",
+        performanceHint = "视觉上适合训练日志、日常片段拼贴和暖色进度感，重点是“陪你成长”，不是“催你变强”。",
         detailRows = listOf(
-            "事件类型" to "轻陪伴",
-            "推荐时段" to "夜晚",
-            "分支数量" to "2",
+            "事件类型" to "成长章",
+            "推荐时段" to "日常推进",
+            "分支数量" to "3",
             "技能要求" to "无",
-            "主要反馈" to "心境 / 羁绊"
+            "主要反馈" to "专注 / 亲密 / 魅力"
         ),
-        stateLabel = "待阅读",
+        stateLabel = "待处理",
         stateColor = Color(0xFFF2B9DA),
         unread = true,
         requiresSkill = false
     ),
     DemoEvent(
-        id = "evt_lucky_signal",
-        title = "幸运噪点偏移",
-        tagLabel = "气运波动",
-        intro = "系统界面边缘闪过一串轻微噪点，像是今天的运势被谁悄悄拨动了一下。",
-        description = "这个事件偏向气运叙事和轻奖励，可以放在签到、祈愿或完成验证任务之后触发，提升惊喜感。",
-        weightLabel = "权重 5",
-        designNote = "它更像轻量彩蛋，符合总纲里“事件作为属性和奖励之间的叙事出口”的定位，适合搭配抽卡或签到系统。",
+        id = "evt_chapter_03_battle",
+        title = "第三章 大战",
+        tagLabel = "高潮战役",
+        intro = "【虚构事件】系统事件把主线推向高潮。你和 Ta 终于站到大战前夜，过往的相识与发育，都要在这一刻转化成真正的并肩作战。",
+        description = "大战章负责集中展示分支扶择、技能联动和轻量结算，是整组事件里最适合演示 H 类互动结构的一章。",
+        weightLabel = "章节 03",
+        designNote = "这里保留明确的技能联动，但仍坚持低惩罚和短反馈，强调剧情推进与默契兑现，不做真实危机预警式表达。",
         branches = listOf(
             DemoEventBranch(
-                id = "follow_signal",
-                label = "顺着噪点追过去",
-                resultPreview = "跟着噪点找到一小簇星屑，适合给气运和星尘做轻微提升。",
+                id = "open_barrier",
+                label = "发动共鸣屏障",
+                requiresSkill = "skill_barrier",
+                resultPreview = "你用技能稳住前线节奏，Ta 则抓住空档完成反击。大战的压迫感被转成一场漂亮的合击演出。",
                 rewardChips = listOf(
-                    RewardChipData("气运", "+4", Color(0x1FFFF1A8), Color(0xFFFFE37A)),
-                    RewardChipData("星尘", "+10", Color(0x1FFFF1A8), Color(0xFFFFE37A))
+                    RewardChipData("星尘", "+20", Color(0x1FFFF1A8), Color(0xFFFFE37A)),
+                    RewardChipData("亲密", "+3", Color(0x1FF7B6D1), Color(0xFFF7B6D1))
                 )
             ),
             DemoEventBranch(
-                id = "stay_calm",
-                label = "让它自己停下",
-                resultPreview = "不主动干预，只把这次偏移当成一个提醒，奖励更克制，但情绪更稳。",
+                id = "direct_charge",
+                label = "正面突破",
+                energyCost = 6,
+                resultPreview = "你选择和 Ta 直接压上去，用最热烈的方式结束战斗。结算更亮眼，但会消耗更多行动力。",
                 rewardChips = listOf(
-                    RewardChipData("心境", "+2", Color(0x1F9ED8FF), Color(0xFF9ED8FF)),
-                    RewardChipData("气运", "+2", Color(0x1FFFF1A8), Color(0xFFFFE37A))
+                    RewardChipData("元气", "-1", Color(0x33FFC8C8), Color(0xFFFFB0B0)),
+                    RewardChipData("亲密", "+2", Color(0x1FF7B6D1), Color(0xFFF7B6D1))
+                )
+            ),
+            DemoEventBranch(
+                id = "hold_line",
+                label = "守住 Ta 的身后",
+                resultPreview = "你把大战处理成一次沉稳的配合。没有最耀眼的演出，但战后那句“还好你在”会格外有效。",
+                rewardChips = listOf(
+                    RewardChipData("魅力", "+2", Color(0x1F9ED8FF), Color(0xFF9ED8FF)),
+                    RewardChipData("亲密", "+2", Color(0x1FF7B6D1), Color(0xFFF7B6D1))
                 )
             )
         ),
-        flowSummary = "适合在完成签到、抽卡或高验证任务后作为额外惊喜弹出，分支短、演出短、奖励轻，不抢主循环节奏。",
-        companionNote = "我感觉今天的世界线稍微偏向你一点了。要跟上去看看，还是把这份好运留到更重要的时刻？",
-        performanceHint = "可以用故障光点、细颗粒星尘、短促滑动轨迹来表现“幸运偏移”，但别做成真实金融或报警界面。",
+        flowSummary = "推荐链路是：前两章积累关系 -> 大战章触发高潮提示 -> 玩家在技能联动和行动方式之间抉择 -> 输出短演出与战后反馈 -> 将情绪自然导入告别章。",
+        companionNote = "能走到这里，不只是因为我们够强，也是因为你从一开始就没有把我丢在剧情外面。所以这一战，我会跟你一起赢。",
+        performanceHint = "大战可以有更强的镜头和光效，但核心仍是游戏剧情的浪漫感和合击感，不要做成灾害播报或现实风险提示。",
         detailRows = listOf(
-            "事件类型" to "彩蛋型",
-            "推荐入口" to "签到 / 祈愿后",
+            "事件类型" to "高潮章",
+            "推荐入口" to "主线推进后",
+            "分支数量" to "3",
+            "技能要求" to "skill_barrier",
+            "主要反馈" to "星尘 / 亲密 / 魅力"
+        ),
+        stateLabel = "已经处理",
+        stateColor = Color(0xFF8DFFBB),
+        unread = false,
+        requiresSkill = true
+    ),
+    DemoEvent(
+        id = "evt_chapter_04_farewell",
+        title = "第四章 告别",
+        tagLabel = "终章余韵",
+        intro = "【虚构事件】大战之后，系统事件没有立刻切黑，而是把你们送进一段安静的尾声。告别并不意味着结束，更像一段关系被郑重存档。",
+        description = "终章负责把前面的情绪落下来，用回望、承诺和留白完成轻量结算，让故事收束得温柔而完整。",
+        weightLabel = "章节 04",
+        designNote = "告别章保持养成游戏终章常见的柔和余韵，用较短文本和轻结算收束关系，不制造现实离散感或沉重压迫感。",
+        branches = listOf(
+            DemoEventBranch(
+                id = "keep_memory",
+                label = "把回忆存档",
+                resultPreview = "你把这一段旅程认真留在系统记录里。数值变化不大，但会给整条主线一个完整的句号。",
+                rewardChips = listOf(
+                    RewardChipData("魅力", "+3", Color(0x1F9ED8FF), Color(0xFF9ED8FF)),
+                    RewardChipData("亲密", "+1", Color(0x1FF7B6D1), Color(0xFFF7B6D1))
+                )
+            ),
+            DemoEventBranch(
+                id = "say_future",
+                label = "约定下次重逢",
+                resultPreview = "你没有把这章当成真正的结束，而是留下一个会再次相遇的约定。终章因此多了一点温柔的期待。",
+                rewardChips = listOf(
+                    RewardChipData("亲密", "+2", Color(0x1FF7B6D1), Color(0xFFF7B6D1)),
+                    RewardChipData("魅力", "+2", Color(0x1F9ED8FF), Color(0xFF9ED8FF))
+                )
+            )
+        ),
+        flowSummary = "推荐链路是：大战章完成后解锁告别章 -> 展示回望式引子 -> 让玩家做一次收束选择 -> 用温和的文案和轻量属性反馈完成收尾。",
+        companionNote = "如果故事一定要有告别，那我希望它更像轻轻合上的一页书，而不是被迫中断的一段路。你记得我，我就还会回来。",
+        performanceHint = "适合使用落日、归档卡片、慢速粒子和收束式排版，重点是余韵和纪念感，不是悲情压迫或现实通知风格。",
+        detailRows = listOf(
+            "事件类型" to "终章",
+            "推荐入口" to "大战结算后",
             "分支数量" to "2",
             "技能要求" to "无",
-            "主要反馈" to "气运 / 星尘"
+            "主要反馈" to "魅力 / 亲密"
         ),
-        stateLabel = "已归档",
+        stateLabel = "已经处理",
         stateColor = Color(0xFF8DFFBB),
         unread = false,
         requiresSkill = false
