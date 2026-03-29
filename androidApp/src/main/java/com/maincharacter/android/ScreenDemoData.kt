@@ -92,6 +92,7 @@ internal data class DemoEvent(
 
 internal data class InventorySkill(
     val name: String,
+    val id: String = name,
     val rarity: String,
     val typeLabel: String,
     val stateLabel: String,
@@ -102,6 +103,7 @@ internal data class InventorySkill(
 
 internal data class InventoryItem(
     val name: String,
+    val id: String = name,
     val shortLabel: String,
     val count: String,
     val description: String,
@@ -112,13 +114,15 @@ internal data class InventoryItem(
 
 internal data class InventorySkin(
     val name: String,
+    val id: String = name,
     val rarity: String,
     val description: String,
     val shardsOwned: Int,
     val shardsRequired: Int,
     val owned: Boolean,
     val actionLabel: String,
-    val accent: Color
+    val accent: Color,
+    val imageRes: Int = R.drawable.companion_pose_2
 )
 
 internal data class ProfileStat(

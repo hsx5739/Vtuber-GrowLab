@@ -2,6 +2,7 @@ package com.maincharacter.android
 
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
+import org.json.JSONObject
 
 internal object ValidationDatabaseSync {
     private const val DATABASE_NAME = "main_character.db"
@@ -78,13 +79,84 @@ internal object ValidationDatabaseSync {
     }
 
     private fun syncInventory(db: SQLiteDatabase, state: PersistedAppState) {
-        state.itemCounts.forEach { (itemId, count) ->
+        db.execSQL("DELETE FROM Inventory")
+
+        state.inventory.skillCards.forEach { (skillId, skillState) ->
             db.execSQL(
                 """
                 INSERT OR REPLACE INTO Inventory(item_id, item_type, count, data)
-                VALUES (?, 'item', ?, '{}')
+                VALUES (?, 'skill', ?, ?)
                 """.trimIndent(),
-                arrayOf(itemId, count)
+                arrayOf(
+                    skillId,
+                    if (skillState.isUnlocked) 1 else 0,
+                    JSONObject().apply {
+                        put("isUnlocked", skillState.isUnlocked)
+                        put("level", skillState.level)
+                        put("experience", skillState.experience)
+                        put("usageCount", skillState.usageCount)
+                        put("lastUsedTime", skillState.lastUsedTime)
+                        put("duplicateRule", InventoryCatalog.skillDuplicateConversion)
+                    }.toString()
+                )
+            )
+        }
+
+        state.inventory.items.forEach { (itemId, itemState) ->
+            db.execSQL(
+                """
+                INSERT OR REPLACE INTO Inventory(item_id, item_type, count, data)
+                VALUES (?, 'item', ?, ?)
+                """.trimIndent(),
+                arrayOf(
+                    itemId,
+                    itemState.count,
+                    JSONObject().apply {
+                        put("isConsumable", itemState.isConsumable)
+                        put("isEquipped", itemState.isEquipped)
+                        put("lastUsedTime", itemState.lastUsedTime)
+                        put("metadata", JSONObject(itemState.metadata))
+                    }.toString()
+                )
+            )
+        }
+
+        state.inventory.skins.forEach { (skinId, skinState) ->
+            val shardCount = state.inventory.shards[skinId]?.count ?: skinState.shardCount
+            db.execSQL(
+                """
+                INSERT OR REPLACE INTO Inventory(item_id, item_type, count, data)
+                VALUES (?, 'skin', ?, ?)
+                """.trimIndent(),
+                arrayOf(
+                    skinId,
+                    if (skinState.isUnlocked) 1 else 0,
+                    JSONObject().apply {
+                        put("isUnlocked", skinState.isUnlocked)
+                        put("isEquipped", state.inventory.equippedSkinId == skinId)
+                        put("unlockTime", skinState.unlockTime)
+                        put("equipTime", skinState.equipTime)
+                        put("shardCount", shardCount)
+                        put("metadata", JSONObject(skinState.metadata))
+                    }.toString()
+                )
+            )
+        }
+
+        state.inventory.shards.forEach { (skinId, shardState) ->
+            db.execSQL(
+                """
+                INSERT OR REPLACE INTO Inventory(item_id, item_type, count, data)
+                VALUES (?, 'shard', ?, ?)
+                """.trimIndent(),
+                arrayOf(
+                    "${skinId}_shard",
+                    shardState.count,
+                    JSONObject().apply {
+                        put("skinId", skinId)
+                        put("lastUpdateTime", shardState.lastUpdateTime)
+                    }.toString()
+                )
             )
         }
     }

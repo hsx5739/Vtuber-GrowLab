@@ -17,6 +17,11 @@ fun InventoryScreen(
     onNavigateBack: () -> Unit = {}
 ) {
     val appState by AppStateStore.state.collectAsState()
+    val inventory = appState.inventory
+    val skills = remember(inventory) { currentInventorySkills(inventory) }
+    val items = remember(inventory) { currentInventoryItems(inventory) }
+    val skins = remember(inventory) { currentInventorySkins(inventory) }
+    val equippedSkin = remember(inventory) { currentEquippedInventorySkin(inventory) }
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabLabels = listOf("技能", "道具", "外观")
 
@@ -38,21 +43,28 @@ fun InventoryScreen(
 
         when (selectedTab) {
             0 -> {
-                inventorySkills.forEach { skill ->
+                skills.forEach { skill ->
                     InventorySkillCard(skill = skill)
                 }
             }
 
             1 -> {
-                currentInventoryItems(appState).forEach { item ->
+                items.forEach { item ->
                     InventoryItemCard(item = item)
                 }
             }
 
             else -> {
-                CompanionWardrobeCard()
-                inventorySkins.forEach { skin ->
-                    InventorySkinCard(skin = skin)
+                CompanionWardrobeCard(skin = equippedSkin)
+                skins.forEach { skin ->
+                    InventorySkinCard(
+                        skin = skin,
+                        onAction = {
+                            if (skin.owned) {
+                                AppStateStore.equipInventorySkin(skin.id)
+                            }
+                        }
+                    )
                 }
             }
         }

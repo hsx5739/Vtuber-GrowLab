@@ -1,16 +1,35 @@
 package com.maincharacter.android
 
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+
 @Composable
 fun ProfileScreen(
     onNavigateBack: () -> Unit = {},
@@ -18,6 +37,8 @@ fun ProfileScreen(
     onNavigateToSignIn: () -> Unit = {},
     onNavigateToShop: () -> Unit = {}
 ) {
+    val appState by AppStateStore.state.collectAsState()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -26,7 +47,7 @@ fun ProfileScreen(
             .padding(horizontal = 16.dp, vertical = 18.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        ProfileHeroCard()
+        ProfileHeroCard(appState = appState)
         ProfileShortcutCard(
             onNavigateToSignIn = onNavigateToSignIn,
             onNavigateToGacha = onNavigateToGacha,
@@ -34,9 +55,9 @@ fun ProfileScreen(
         )
         ProfileSettingSection()
         ProfileAboutSection()
-
     }
 }
+
 @Composable
 internal fun InventoryOverviewCard(
     selectedTab: Int,
@@ -58,13 +79,13 @@ internal fun InventoryOverviewCard(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        text = "行囊",
+                        text = "背包",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
                     Text(
-                        text = "角色背包统一承接技能、道具、外观和每周任务产出的抽奖券，默认都归当前绑定人物。",
+                        text = "这里统一展示技能、道具、外观，以及任务和签到产出的抽奖券。",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color(0xFFC8D1FF)
                     )
@@ -118,7 +139,7 @@ internal fun InventoryCharacterContextCard(
                 color = Color.White
             )
             Text(
-                text = "账号 ${demoAccountContext.accountName} 已绑定当前人物，任务奖励、抽奖券和外观穿戴都写入角色上下文。",
+                text = "当前账号已绑定这个人物，任务奖励、签到奖励和抽奖券都会写入这里。",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color(0xFFC8D1FF)
             )
@@ -134,7 +155,7 @@ internal fun InventoryCharacterContextCard(
                 )
                 EventSummaryPill(
                     label = "抽奖券",
-                    value = appState.lotteryTicketCount.toString(),
+                    value = currentInventoryTicketCount(appState.inventory).toString(),
                     accent = Color(0xFFD6C7FF),
                     modifier = Modifier.weight(1f)
                 )
@@ -142,6 +163,7 @@ internal fun InventoryCharacterContextCard(
         }
     }
 }
+
 @Composable
 internal fun InventorySkillCard(skill: InventorySkill) {
     Card(
@@ -268,21 +290,9 @@ internal fun InventoryItemCard(item: InventoryItem) {
                     color = Color(0xFFC8D1FF)
                 )
                 Text(
-                    text = "持有 ${item.count} · ${item.effectHint}",
+                    text = "持有 ${item.count} - ${item.effectHint}",
                     style = MaterialTheme.typography.bodySmall,
                     color = item.accent
-                )
-            }
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = Color(0xFF7588FF)
-            ) {
-                Text(
-                    text = item.actionLabel,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Color.White,
-                    fontWeight = FontWeight.SemiBold
                 )
             }
         }
@@ -290,7 +300,7 @@ internal fun InventoryItemCard(item: InventoryItem) {
 }
 
 @Composable
-internal fun CompanionWardrobeCard() {
+internal fun CompanionWardrobeCard(skin: InventorySkin) {
     Card(
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF171C39))
@@ -307,10 +317,10 @@ internal fun CompanionWardrobeCard() {
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     SampledResourceImage(
-                        resourceId = R.drawable.companion_pose_2,
+                        resourceId = skin.imageRes,
                         contentDescription = "当前穿戴立绘",
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit,
+                        contentScale = ContentScale.Crop,
                         reqHeightDp = 88.dp
                     )
                 }
@@ -320,20 +330,15 @@ internal fun CompanionWardrobeCard() {
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
-                    text = "当前穿戴 · 星巡礼装",
+                    text = "当前穿戴 - ${skin.name}",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
                 Text(
-                    text = "外观页重点承接抽卡后的“去换上”，同时把碎片合成和装备反馈做得足够明确。",
+                    text = "外观页承接换装、碎片合成和穿戴反馈。",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color(0xFFC8D1FF)
-                )
-                Text(
-                    text = "羁绊加成 +2",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFFF7B6D1)
                 )
             }
         }
@@ -341,7 +346,10 @@ internal fun CompanionWardrobeCard() {
 }
 
 @Composable
-internal fun InventorySkinCard(skin: InventorySkin) {
+internal fun InventorySkinCard(
+    skin: InventorySkin,
+    onAction: () -> Unit = {}
+) {
     Card(
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF161B37))
@@ -352,9 +360,22 @@ internal fun InventorySkinCard(skin: InventorySkin) {
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                Surface(
+                    modifier = Modifier.size(92.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color(0xFF20264A)
+                ) {
+                    SampledResourceImage(
+                        resourceId = skin.imageRes,
+                        contentDescription = skin.name,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        reqHeightDp = 92.dp
+                    )
+                }
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -379,6 +400,9 @@ internal fun InventorySkinCard(skin: InventorySkin) {
                     )
                 }
                 Surface(
+                    modifier = Modifier.clickable(enabled = skin.owned && skin.actionLabel != "已穿戴") {
+                        onAction()
+                    },
                     shape = RoundedCornerShape(16.dp),
                     color = if (skin.owned) Color(0xFF7588FF) else Color(0xFF20264A)
                 ) {
@@ -391,16 +415,21 @@ internal fun InventorySkinCard(skin: InventorySkin) {
                     )
                 }
             }
-            Text(
-                text = "碎片 ${skin.shardsOwned} / ${skin.shardsRequired}",
-                style = MaterialTheme.typography.bodySmall,
-                color = skin.accent
-            )
+            if (!skin.owned) {
+                Text(
+                    text = "碎片 ${skin.shardsOwned} / ${skin.shardsRequired}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = skin.accent
+                )
+            }
         }
     }
 }
+
 @Composable
-private fun ProfileHeroCard() {
+private fun ProfileHeroCard(
+    appState: PersistedAppState
+) {
     Card(
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF171C39))
@@ -415,11 +444,6 @@ private fun ProfileHeroCard() {
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
-            Text(
-                text = "这里承接账号、角色、属性和权限信息，首版默认一个账号只绑定一个人物。",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFFC8D1FF)
-            )
             Surface(
                 shape = RoundedCornerShape(18.dp),
                 color = Color(0xFF20264A)
@@ -429,13 +453,13 @@ private fun ProfileHeroCard() {
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = "${demoAccountContext.nickname} · ${demoAccountContext.accountName}",
+                        text = "${demoAccountContext.nickname} - ${demoAccountContext.accountName}",
                         style = MaterialTheme.typography.labelLarge,
                         color = Color.White,
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = "默认外观：${demoAccountContext.equippedAppearanceName} · mood ${demoAccountContext.mood}",
+                        text = "默认外观：${demoAccountContext.equippedAppearanceName} - mood ${demoAccountContext.mood}",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFFB8C4F6)
                     )
@@ -445,7 +469,7 @@ private fun ProfileHeroCard() {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                profileStats.forEach { stat ->
+                currentProfileStats(appState).forEach { stat ->
                     EventSummaryPill(
                         label = stat.label,
                         value = stat.value,
@@ -457,6 +481,17 @@ private fun ProfileHeroCard() {
         }
     }
 }
+
+private fun currentProfileStats(
+    appState: PersistedAppState
+): List<ProfileStat> {
+    return listOf(
+        ProfileStat("角色 ID", demoAccountContext.characterId.removePrefix("char_"), Color(0xFFFFD66E)),
+        ProfileStat("魅力值", appState.charm.toString(), Color(0xFFAED3FF)),
+        ProfileStat("抽奖券", appState.lotteryTicketCount.toString(), Color(0xFFD6C7FF))
+    )
+}
+
 @Composable
 private fun ProfileShortcutCard(
     onNavigateToSignIn: () -> Unit,
@@ -506,7 +541,7 @@ private fun ProfileSettingSection() {
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
-            profileSettings.forEach { setting ->
+            currentProfileSettings().forEach { setting ->
                 Surface(
                     shape = RoundedCornerShape(18.dp),
                     color = Color(0xFF20264A)
@@ -562,14 +597,45 @@ private fun ProfileAboutSection() {
                 color = Color(0xFF2A315D)
             )
             Text(
-                text = "当前展示口径已经切到账号-人物-属性-背包四层结构，后续可以继续接注册登录、云同步和本地库迁移。",
+                text = "这里展示当前账号、角色和外观信息。",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color(0xFF41506F)
             )
-            profileAboutRows.forEach { row ->
+            currentProfileAboutRows().forEach { row ->
                 TaskDetailRow(label = row.first, value = row.second)
             }
         }
     }
 }
 
+private fun currentProfileSettings(): List<ProfileSettingRow> {
+    return listOf(
+        ProfileSettingRow(
+            title = "健康数据",
+            description = "步数、睡眠等验证任务会从这里进入授权与说明。",
+            value = "未开启",
+            accent = Color(0xFFFFD66E)
+        ),
+        ProfileSettingRow(
+            title = "多模态隐私",
+            description = "拍照、语音任务的用途、保留策略和删除说明。",
+            value = "查看说明",
+            accent = Color(0xFF90E2FF)
+        ),
+        ProfileSettingRow(
+            title = "陪伴音效",
+            description = "控制点击反馈、签到提示和待机语音的整体体验。",
+            value = "柔和",
+            accent = Color(0xFFC8FF9B)
+        )
+    )
+}
+
+private fun currentProfileAboutRows(): List<Pair<String, String>> {
+    return listOf(
+        "账号" to demoAccountContext.accountName,
+        "账号 ID" to demoAccountContext.accountId,
+        "角色昵称" to demoAccountContext.nickname,
+        "角色外观" to demoAccountContext.equippedAppearanceName
+    )
+}

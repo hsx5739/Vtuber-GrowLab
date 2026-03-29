@@ -3,7 +3,14 @@ package com.maincharacter.android
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.compose.ui.graphics.Color
+import com.maincharacter.shared.model.CurrencyType
+import com.maincharacter.shared.model.Inventory
+import com.maincharacter.shared.model.ItemState
+import com.maincharacter.shared.model.ShardState
 import com.maincharacter.shared.model.SignInState
+import com.maincharacter.shared.model.SkinState
+import com.maincharacter.shared.model.SkinUnlockSource
+import com.maincharacter.shared.serializer.DataSerializer
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -29,6 +36,7 @@ internal data class PersistedAppState(
     val signInState: SignInState = defaultSignInState(),
     val taskStates: Map<String, PersistedTaskState> = defaultTaskStates(),
     val itemCounts: Map<String, Int> = defaultItemCounts(),
+    val inventory: Inventory = defaultInventoryState(),
     val claimedWeeklyTaskIds: Set<String> = emptySet(),
     val weeklyResetKey: String = currentWeeklyResetKey()
 )
@@ -133,6 +141,27 @@ internal object AppStateStore {
             claimedWeeklyTaskIds = current.claimedWeeklyTaskIds + taskId
         )
         saveState(nextState)
+        return true
+    }
+
+    fun equipInventorySkin(skinId: String): Boolean {
+        val current = _state.value
+        val skinState = current.inventory.skins[skinId] ?: return false
+        if (!skinState.isUnlocked) return false
+        if (current.inventory.equippedSkinId == skinId) return false
+
+        val now = System.currentTimeMillis()
+        val nextInventory = current.inventory.copy(
+            equippedSkinId = skinId,
+            skins = current.inventory.skins.mapValues { (id, state) ->
+                state.copy(
+                    isEquipped = id == skinId,
+                    equipTime = if (id == skinId) now else state.equipTime
+                )
+            },
+            lastUpdateTime = now
+        )
+        saveState(current.copy(inventory = nextInventory))
         return true
     }
 
@@ -246,6 +275,7 @@ internal object AppStateStore {
             )
             put("tasks", tasksJson)
             put("items", itemsJson)
+            put("inventory", DataSerializer.serializeInventory(state.inventory))
             put("claimedWeeklyTaskIds", state.claimedWeeklyTaskIds.toList())
             put("weeklyResetKey", state.weeklyResetKey)
         }.toString()
@@ -256,6 +286,7 @@ internal object AppStateStore {
         val tasksJson = json.optJSONObject("tasks")
         val itemsJson = json.optJSONObject("items")
         val signInJson = json.optJSONObject("signIn")
+        val inventoryJson = json.optString("inventory", "")
         val claimedWeeklyTaskIds = buildSet {
             val claimedArray = json.optJSONArray("claimedWeeklyTaskIds") ?: return@buildSet
             for (index in 0 until claimedArray.length()) {
@@ -302,6 +333,11 @@ internal object AppStateStore {
             },
             taskStates = if (taskStates.isEmpty()) defaultTaskStates() else taskStates,
             itemCounts = itemCounts,
+            inventory = inventoryJson.takeIf { it.isNotBlank() }?.let {
+                runCatching { DataSerializer.deserializeInventory(it) }.getOrElse {
+                    defaultInventoryState(json.optInt("lotteryTicketCount", demoAccountContext.lotteryTicketCount))
+                }
+            } ?: defaultInventoryState(json.optInt("lotteryTicketCount", demoAccountContext.lotteryTicketCount)),
             claimedWeeklyTaskIds = claimedWeeklyTaskIds,
             weeklyResetKey = json.optString("weeklyResetKey", currentWeeklyResetKey())
         )
@@ -357,7 +393,8 @@ internal object AppStateStore {
         if (normalizedSignIn != normalized.signInState) {
             normalized = normalized.copy(signInState = normalizedSignIn)
         }
-        return syncSignInTaskState(normalized, today)
+        normalized = syncSignInTaskState(normalized, today)
+        return syncInventoryState(normalized)
     }
 
     private fun refreshWeeklyStateIfNeeded(state: PersistedAppState): PersistedAppState {
@@ -559,17 +596,7 @@ internal fun currentHomeStatusMetrics(
 internal fun currentInventoryItems(
     state: PersistedAppState = AppStateStore.currentState
 ): List<InventoryItem> {
-    return inventoryItems.mapIndexed { index, item ->
-        val itemId = when (index) {
-            0 -> "item_energy_potion"
-            1 -> "item_lucky_note"
-            2 -> "lottery_ticket"
-            else -> item.name
-        }
-        item.copy(
-            count = (state.itemCounts[itemId] ?: item.count.toIntOrNull() ?: 0).toString()
-        )
-    }
+    return currentInventoryItems(state.inventory)
 }
 
 private fun defaultTaskStates(): Map<String, PersistedTaskState> {
@@ -586,8 +613,108 @@ private fun defaultTaskStates(): Map<String, PersistedTaskState> {
 
 private fun defaultItemCounts(): Map<String, Int> {
     return mapOf(
-        "item_energy_potion" to 3,
-        "item_lucky_note" to 2,
-        "lottery_ticket" to demoAccountContext.lotteryTicketCount
+        InventoryCatalog.itemEnergyPotion to 3,
+        InventoryCatalog.itemLuckyNote to 2,
+        InventoryCatalog.itemLotteryTicket to demoAccountContext.lotteryTicketCount
     )
+}
+
+private fun syncInventoryState(state: PersistedAppState): PersistedAppState {
+    val previousInventory = state.inventory
+    val migrationApplied = previousInventory.metadata[InventoryCatalog.wardrobeMigrationVersion] == "true"
+
+    val nextItems = previousInventory.items.toMutableMap()
+    val defaultInventory = defaultInventoryState(state.lotteryTicketCount)
+    val nextSkills = previousInventory.skillCards.toMutableMap()
+    defaultInventory.skillCards.forEach { (skillId, skillState) ->
+        nextSkills.putIfAbsent(skillId, skillState)
+    }
+    InventoryCatalog.itemDefinitions.forEach { (itemId, definition) ->
+        val current = nextItems[itemId]
+        val count = when (itemId) {
+            InventoryCatalog.itemLotteryTicket -> state.lotteryTicketCount
+            else -> state.itemCounts[itemId] ?: current?.count ?: 0
+        }
+        nextItems[itemId] = (current ?: ItemState(
+            itemId = itemId,
+            count = count,
+            isConsumable = definition.isConsumable
+        )).copy(
+            count = count,
+            isConsumable = definition.isConsumable
+        )
+    }
+
+    val nextSkins = previousInventory.skins.toMutableMap()
+    val nextShards = previousInventory.shards.toMutableMap()
+    InventoryCatalog.skinDefinitions.forEach { (skinId, definition) ->
+        val existingSkin = nextSkins[skinId]
+        val existingShard = nextShards[skinId]
+        val shouldResetShard = !migrationApplied && skinId in InventoryCatalog.migratedWardrobeSkinIds
+        val shardCount = when {
+            shouldResetShard -> 0
+            existingShard != null -> existingShard.count
+            existingSkin != null -> existingSkin.shardCount
+            definition.defaultUnlocked -> definition.shardsRequired
+            else -> 0
+        }
+        val fallbackUnlockSource = if (definition.defaultUnlocked) SkinUnlockSource.DEFAULT else null
+        nextSkins[skinId] = (existingSkin ?: SkinState(
+            skinId = skinId,
+            isUnlocked = definition.defaultUnlocked,
+            unlockSource = fallbackUnlockSource
+        )).copy(
+            isUnlocked = existingSkin?.isUnlocked ?: definition.defaultUnlocked,
+            unlockSource = existingSkin?.unlockSource ?: fallbackUnlockSource,
+            shardCount = shardCount,
+            metadata = existingSkin?.metadata.orEmpty() + definition.metadata
+        )
+        nextShards[skinId] = (existingShard ?: ShardState(skinId = skinId, count = shardCount)).copy(
+            count = shardCount
+        )
+    }
+
+    val equippedSkinId = when {
+        previousInventory.equippedSkinId != null &&
+            nextSkins[previousInventory.equippedSkinId]?.isUnlocked == true -> previousInventory.equippedSkinId
+        else -> nextSkins.entries.firstOrNull { it.value.isUnlocked }?.key ?: InventoryCatalog.skinCeremony
+    }
+    val now = System.currentTimeMillis()
+    val normalizedSkins = nextSkins.mapValues { (skinId, skinState) ->
+        val shouldEquip = equippedSkinId == skinId && skinState.isUnlocked
+        if (skinState.isEquipped == shouldEquip) {
+            skinState
+        } else {
+            skinState.copy(
+                isEquipped = shouldEquip,
+                equipTime = if (shouldEquip) (skinState.equipTime ?: now) else skinState.equipTime
+            )
+        }
+    }
+
+    val nextMetadata = previousInventory.metadata + mapOf(
+        InventoryCatalog.wardrobeMigrationVersion to "true"
+    )
+    val nextInventory = previousInventory.copy(
+        userId = demoAccountContext.characterId,
+        skillCards = nextSkills,
+        items = nextItems,
+        skins = normalizedSkins,
+        shards = nextShards,
+        currencies = previousInventory.currencies + (CurrencyType.GACHA_TICKET to state.lotteryTicketCount),
+        equippedSkinId = equippedSkinId,
+        lastUpdateTime = now,
+        metadata = nextMetadata
+    )
+    return if (
+        nextInventory == previousInventory &&
+        (state.itemCounts[InventoryCatalog.itemLotteryTicket] ?: 0) == state.lotteryTicketCount
+    ) {
+        state
+    } else {
+        state.copy(
+            itemCounts = state.itemCounts + (InventoryCatalog.itemLotteryTicket to state.lotteryTicketCount),
+            inventory = nextInventory
+        )
+    }
 }
