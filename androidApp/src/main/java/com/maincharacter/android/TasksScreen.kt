@@ -44,7 +44,7 @@ fun TasksScreen(
 ) {
     val context = LocalContext.current
     val appState by AppStateStore.state.collectAsState()
-    var selectedTab by remember { mutableStateOf(TaskBoardTab.DAILY) }
+    val selectedTab by TaskBoardUiStateStore.selectedTab.collectAsState()
     val board = remember(appState) { currentTaskBoardContent(appState) }
     val overview = if (selectedTab == TaskBoardTab.DAILY) board.dailyOverview else board.weeklyOverview
     val handleTaskClick: (TaskBoardTask) -> Unit = { task ->
@@ -68,7 +68,7 @@ fun TasksScreen(
         TaskOverviewCard(
             selectedTab = selectedTab,
             overview = overview,
-            onTabSelected = { selectedTab = it }
+            onTabSelected = { TaskBoardUiStateStore.selectTab(it) }
         )
 
         if (selectedTab == TaskBoardTab.DAILY) {
@@ -120,7 +120,9 @@ fun TaskDetailScreen(
     onNavigateToFocusRecord: (String) -> Unit = {},
     onNavigateToVideoUpload: (String) -> Unit = {}
 ) {
-    val task = resolveTaskBoardTask(taskId)
+    val context = LocalContext.current
+    val appState by AppStateStore.state.collectAsState()
+    val task = remember(taskId, appState) { resolveTaskBoardTask(taskId) }
 
     if (task == null) {
         PlaceholderScreen(
@@ -151,9 +153,25 @@ fun TaskDetailScreen(
         TaskCompanionSection(task = task)
         TaskPrimaryActionCard(
             task = task,
+            primaryLabel = resolveTaskPrimaryActionLabel(task, appState),
+            primaryEnabled = isTaskPrimaryActionEnabled(task, appState),
             feedback = actionFeedback,
             onPrimaryClick = {
-                actionFeedback = when (task.primaryActionLabel) {
+                if (task.sectionKind == TaskBoardSectionKind.WEEKLY) {
+                    if (task.isFinished) {
+                        val claimed = AppStateStore.claimWeeklyTaskReward(taskId)
+                        if (claimed) {
+                            Toast.makeText(context, "抽奖券领取成功", Toast.LENGTH_SHORT).show()
+                            onNavigateBack()
+                        } else {
+                            Toast.makeText(context, "领取失败，请稍后重试", Toast.LENGTH_SHORT).show()
+                        }
+                    } else {
+                        TaskBoardUiStateStore.selectTab(TaskBoardTab.DAILY)
+                        onNavigateBack()
+                    }
+                } else {
+                    actionFeedback = when (task.primaryActionLabel) {
                     "去首页" -> {
                         markTaskCompleted(taskId)
                         onNavigateToHome()
@@ -178,6 +196,7 @@ fun TaskDetailScreen(
                     }
                     "领取抽奖券" -> "点击后应把当前周奖励档位写入角色背包，抽奖券数量立即增加。"
                     else -> "点击后应跳回每日任务继续推进累计次数。"
+                    }
                 }
             },
             onSecondaryClick = {
@@ -797,6 +816,8 @@ private fun TaskCompanionSection(task: TaskBoardTask) {
 @Composable
 private fun TaskPrimaryActionCard(
     task: TaskBoardTask,
+    primaryLabel: String,
+    primaryEnabled: Boolean,
     feedback: String?,
     onPrimaryClick: () -> Unit,
     onSecondaryClick: (() -> Unit)? = null
@@ -822,9 +843,10 @@ private fun TaskPrimaryActionCard(
             )
             Button(
                 onClick = onPrimaryClick,
+                enabled = primaryEnabled,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(task.primaryActionLabel)
+                Text(primaryLabel)
             }
             if (task.secondaryActionLabel != null) {
                 FilledTonalButton(

@@ -522,10 +522,15 @@ private fun resolveTask(
     state: PersistedAppState
 ): TaskBoardTask {
     val persisted = state.taskStates[task.id] ?: return task
-    return task.copy(
+    val resolvedTask = task.copy(
         status = persisted.status.toTaskBoardStatus(task.status),
         progressCurrent = persisted.progressCurrent.coerceAtMost(task.progressTarget)
     )
+    return if (resolvedTask.sectionKind == TaskBoardSectionKind.WEEKLY && task.id in state.claimedWeeklyTaskIds) {
+        resolvedTask.copy(status = TaskBoardStatus.COMPLETED)
+    } else {
+        resolvedTask
+    }
 }
 
 internal fun currentTaskBoardContent(
@@ -564,6 +569,25 @@ internal fun resolveTaskBoardTask(taskId: String): TaskBoardTask? {
 
 internal fun markTaskCompleted(taskId: String) {
     AppStateStore.completeTask(taskId)
+}
+
+internal fun resolveTaskPrimaryActionLabel(
+    task: TaskBoardTask,
+    state: PersistedAppState = AppStateStore.currentState
+): String {
+    if (task.sectionKind != TaskBoardSectionKind.WEEKLY) return task.primaryActionLabel
+    return when {
+        task.id in state.claimedWeeklyTaskIds -> "已经领取"
+        task.isFinished -> "领取抽奖券"
+        else -> "查看今日任务"
+    }
+}
+
+internal fun isTaskPrimaryActionEnabled(
+    task: TaskBoardTask,
+    state: PersistedAppState = AppStateStore.currentState
+): Boolean {
+    return !(task.sectionKind == TaskBoardSectionKind.WEEKLY && task.id in state.claimedWeeklyTaskIds)
 }
 
 private fun String.toTaskBoardStatus(fallback: TaskBoardStatus): TaskBoardStatus {

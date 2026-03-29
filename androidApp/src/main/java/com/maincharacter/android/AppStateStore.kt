@@ -3,6 +3,8 @@ package com.maincharacter.android
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.compose.ui.graphics.Color
+import java.util.Calendar
+import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,7 +23,9 @@ internal data class PersistedAppState(
     val mood: Int = demoAccountContext.mood,
     val lotteryTicketCount: Int = demoAccountContext.lotteryTicketCount,
     val taskStates: Map<String, PersistedTaskState> = defaultTaskStates(),
-    val itemCounts: Map<String, Int> = defaultItemCounts()
+    val itemCounts: Map<String, Int> = defaultItemCounts(),
+    val claimedWeeklyTaskIds: Set<String> = emptySet(),
+    val weeklyResetKey: String = currentWeeklyResetKey()
 )
 
 internal object AppStateStore {
@@ -41,7 +45,12 @@ internal object AppStateStore {
         if (::preferences.isInitialized) return
         appContext = context.applicationContext
         preferences = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        _state.value = loadState()
+        val loadedState = loadState()
+        val normalizedState = refreshWeeklyStateIfNeeded(loadedState)
+        _state.value = normalizedState
+        if (normalizedState != loadedState) {
+            saveState(normalizedState)
+        }
     }
 
     fun completeTask(taskId: String) {
@@ -81,6 +90,34 @@ internal object AppStateStore {
         }
 
         saveState(nextState)
+    }
+
+    fun claimWeeklyTaskReward(taskId: String): Boolean {
+        val task = findTaskBoardTask(taskId) ?: return false
+        if (task.sectionKind != TaskBoardSectionKind.WEEKLY) return false
+
+        val current = _state.value
+        if (taskId in current.claimedWeeklyTaskIds) return false
+
+        val resolvedTask = resolveTaskBoardTask(taskId) ?: return false
+        if (!resolvedTask.isFinished) return false
+
+        val rewardCount = when (taskId) {
+            "task_weekly_bond" -> 1
+            "task_weekly_vitality" -> 2
+            "task_weekly_focus" -> 3
+            else -> return false
+        }
+
+        val nextLotteryCount = current.lotteryTicketCount + rewardCount
+        val nextItemCount = (current.itemCounts["lottery_ticket"] ?: 0) + rewardCount
+        val nextState = current.copy(
+            lotteryTicketCount = nextLotteryCount,
+            itemCounts = current.itemCounts + ("lottery_ticket" to nextItemCount),
+            claimedWeeklyTaskIds = current.claimedWeeklyTaskIds + taskId
+        )
+        saveState(nextState)
+        return true
     }
 
     private fun updateWeeklyProgress(
@@ -148,7 +185,7 @@ internal object AppStateStore {
     private fun loadState(): PersistedAppState {
         val raw = preferences.getString(KEY_STATE, null) ?: return PersistedAppState()
         return runCatching {
-            decodeState(raw)
+            refreshWeeklyStateIfNeeded(decodeState(raw))
         }.getOrElse {
             PersistedAppState()
         }
@@ -180,6 +217,8 @@ internal object AppStateStore {
             put("lotteryTicketCount", state.lotteryTicketCount)
             put("tasks", tasksJson)
             put("items", itemsJson)
+            put("claimedWeeklyTaskIds", state.claimedWeeklyTaskIds.toList())
+            put("weeklyResetKey", state.weeklyResetKey)
         }.toString()
     }
 
@@ -187,6 +226,12 @@ internal object AppStateStore {
         val json = JSONObject(raw)
         val tasksJson = json.optJSONObject("tasks")
         val itemsJson = json.optJSONObject("items")
+        val claimedWeeklyTaskIds = buildSet {
+            val claimedArray = json.optJSONArray("claimedWeeklyTaskIds") ?: return@buildSet
+            for (index in 0 until claimedArray.length()) {
+                add(claimedArray.optString(index))
+            }
+        }
         val taskStates = buildMap {
             tasksJson?.keys()?.forEach { taskId ->
                 val taskObject = tasksJson.optJSONObject(taskId) ?: return@forEach
@@ -212,7 +257,30 @@ internal object AppStateStore {
             mood = json.optInt("mood", demoAccountContext.mood),
             lotteryTicketCount = json.optInt("lotteryTicketCount", demoAccountContext.lotteryTicketCount),
             taskStates = if (taskStates.isEmpty()) defaultTaskStates() else taskStates,
-            itemCounts = itemCounts
+            itemCounts = itemCounts,
+            claimedWeeklyTaskIds = claimedWeeklyTaskIds,
+            weeklyResetKey = json.optString("weeklyResetKey", currentWeeklyResetKey())
+        )
+    }
+
+    private fun refreshWeeklyStateIfNeeded(state: PersistedAppState): PersistedAppState {
+        val currentKey = currentWeeklyResetKey()
+        if (state.weeklyResetKey == currentKey) return state
+
+        val resetWeeklyTaskIds = taskBoardContent.weeklyTasks.map { it.id }.toSet()
+        val resetTaskStates = state.taskStates.toMutableMap().apply {
+            taskBoardContent.weeklyTasks.forEach { task ->
+                this[task.id] = PersistedTaskState(
+                    status = task.status.name,
+                    progressCurrent = task.progressCurrent
+                )
+            }
+        }
+
+        return state.copy(
+            taskStates = resetTaskStates,
+            claimedWeeklyTaskIds = state.claimedWeeklyTaskIds - resetWeeklyTaskIds,
+            weeklyResetKey = currentKey
         )
     }
 
@@ -225,6 +293,22 @@ internal object AppStateStore {
             taskStates = taskStates + (taskId to PersistedTaskState(status, progressCurrent))
         )
     }
+}
+
+private fun currentWeeklyResetKey(calendar: Calendar = Calendar.getInstance(Locale.getDefault())): String {
+    val weekOfYear = calendar.get(Calendar.WEEK_OF_YEAR)
+    val weekYear = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+        calendar.weekYear
+    } else {
+        val cloned = calendar.clone() as Calendar
+        val month = cloned.get(Calendar.MONTH)
+        when {
+            month == Calendar.JANUARY && weekOfYear >= 52 -> cloned.get(Calendar.YEAR) - 1
+            month == Calendar.DECEMBER && weekOfYear == 1 -> cloned.get(Calendar.YEAR) + 1
+            else -> cloned.get(Calendar.YEAR)
+        }
+    }
+    return "$weekYear-$weekOfYear"
 }
 
 internal fun currentHomeStatusMetrics(
