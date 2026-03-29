@@ -155,12 +155,14 @@ fun TaskDetailScreen(
             onPrimaryClick = {
                 actionFeedback = when (task.primaryActionLabel) {
                     "去首页" -> {
+                        markTaskCompleted(taskId)
                         onNavigateToHome()
-                        "已按任务文档的亲密任务规则跳到首页，真实完成应由首页访问事件回写任务状态。"
+                        "已完成该亲密任务，并跳转到首页。"
                     }
                     "去签到" -> {
+                        markTaskCompleted(taskId)
                         onNavigateToSignIn()
-                        "已跳到签到页，签到成功事件应作为亲密任务的唯一完成依据。"
+                        "已完成该亲密任务，并跳转到签到页。"
                     }
                     "上传拍照" -> {
                         onNavigateToPhotoUpload(taskId)

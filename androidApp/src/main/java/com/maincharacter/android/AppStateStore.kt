@@ -28,6 +28,7 @@ internal object AppStateStore {
     private const val PREFS_NAME = "main_character_app_state"
     private const val KEY_STATE = "state"
 
+    private lateinit var appContext: Context
     private lateinit var preferences: SharedPreferences
 
     private val _state = MutableStateFlow(PersistedAppState())
@@ -38,7 +39,8 @@ internal object AppStateStore {
 
     fun initialize(context: Context) {
         if (::preferences.isInitialized) return
-        preferences = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        appContext = context.applicationContext
+        preferences = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         _state.value = loadState()
     }
 
@@ -137,6 +139,9 @@ internal object AppStateStore {
         _state.value = state
         if (::preferences.isInitialized) {
             preferences.edit().putString(KEY_STATE, encodeState(state)).apply()
+        }
+        if (::appContext.isInitialized) {
+            ValidationDatabaseSync.syncState(appContext, state)
         }
     }
 
