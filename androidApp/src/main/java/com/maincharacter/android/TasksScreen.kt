@@ -178,9 +178,8 @@ fun TaskDetailScreen(
                         "已完成该亲密任务，并跳转到首页。"
                     }
                     "去签到" -> {
-                        markTaskCompleted(taskId)
                         onNavigateToSignIn()
-                        "已完成该亲密任务，并跳转到签到页。"
+                        "已跳转到签到页，只有签到成功后才会完成该任务并发放当日收益。"
                     }
                     "上传拍照" -> {
                         onNavigateToPhotoUpload(taskId)

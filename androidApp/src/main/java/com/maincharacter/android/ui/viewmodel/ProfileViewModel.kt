@@ -6,6 +6,9 @@ import com.maincharacter.shared.model.*
 import com.maincharacter.shared.repository.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class ProfileViewModel(
     private val hostStateRepository: HostStateRepository,
@@ -93,7 +96,7 @@ class ProfileViewModel(
     }
     
     private fun getCurrentDate(): String {
-        return java.time.LocalDate.now().toString()
+        return SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
     }
 }
 
