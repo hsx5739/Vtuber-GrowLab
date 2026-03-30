@@ -412,6 +412,25 @@ private fun SignInStatPill(
     }
 }
 
+@Composable
+private fun TaskStatusBadge(
+    label: String,
+    color: Color
+) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = color.copy(alpha = 0.18f)
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            style = MaterialTheme.typography.labelMedium,
+            color = color,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
 private data class SignInWeekEntry(
     val weekLabel: String,
     val dayLabel: String,
@@ -443,7 +462,7 @@ private fun buildSignInWeekEntries(
         }
         SignInWeekEntry(
             weekLabel = weekLabels[date.get(Calendar.DAY_OF_WEEK)],
-            dayLabel = date.get(Calendar.DAY_OF_MONTH).toString(),
+            dayLabel = date.get(Calendar.DAY_OF_MONTH).toString().padStart(2, '0'),
             isToday = isSameCalendarDay(date, today),
             isSigned = signInState.isSignedInMonth(formatDateKey(date)),
             feedback = feedback
