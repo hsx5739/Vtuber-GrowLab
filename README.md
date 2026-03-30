@@ -21,6 +21,26 @@
 
 - [演示视频下载](./Screenrecording_20260330_113702.mp4)
 
+
+## APK 下载
+
+当前仓库内已提供 Android Release 安装包：
+
+- 文件名：`androidApp-release.apk`
+- 版本目录：`release/26.03.30/`
+- 文件大小：约 30.3 MB
+- 下载链接：[点击下载 APK](./release/26.03.30/androidApp-release.apk)
+
+## 项目结构
+
+- `androidApp/`：Android 端 UI 与导航实现。
+- `shared/`：共享模型、业务数据与公共逻辑。
+- `docs/`：需求、设计与合规文档。
+- `resources/`：静态资源与素材文件。
+- `iosApp/`：iOS 端工程目录。
+- `演示图片/`：README 展示用界面截图。
+- `release/`：构建产物与对外分发 APK。
+
 ## 演示图片
 
 ### 首页
@@ -67,21 +87,4 @@
 
 ![每周任务未完成](./演示图片/ic_week_task_unfinish.jpg)
 
-## APK 下载
 
-当前仓库内已提供 Android Release 安装包：
-
-- 文件名：`androidApp-release.apk`
-- 版本目录：`release/26.03.30/`
-- 文件大小：约 30.3 MB
-- 下载链接：[点击下载 APK](./release/26.03.30/androidApp-release.apk)
-
-## 项目结构
-
-- `androidApp/`：Android 端 UI 与导航实现。
-- `shared/`：共享模型、业务数据与公共逻辑。
-- `docs/`：需求、设计与合规文档。
-- `resources/`：静态资源与素材文件。
-- `iosApp/`：iOS 端工程目录。
-- `演示图片/`：README 展示用界面截图。
-- `release/`：构建产物与对外分发 APK。
