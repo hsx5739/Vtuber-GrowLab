@@ -412,25 +412,6 @@ private fun SignInStatPill(
     }
 }
 
-@Composable
-private fun TaskStatusBadge(
-    label: String,
-    color: Color
-) {
-    Surface(
-        shape = RoundedCornerShape(999.dp),
-        color = color.copy(alpha = 0.18f)
-    ) {
-        Text(
-            text = label,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            style = MaterialTheme.typography.labelMedium,
-            color = color,
-            fontWeight = FontWeight.SemiBold
-        )
-    }
-}
-
 private data class SignInWeekEntry(
     val weekLabel: String,
     val dayLabel: String,

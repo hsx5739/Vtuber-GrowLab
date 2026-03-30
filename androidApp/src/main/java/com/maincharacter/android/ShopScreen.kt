@@ -359,62 +359,6 @@ private fun isSkinUnlocked(appState: PersistedAppState, skinId: String?): Boolea
     return appState.inventory.skins[skinId]?.isUnlocked == true
 }
 
-@Composable
-private fun EventSummaryPill(
-    label: String,
-    value: String,
-    accent: Color,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
-        color = Color(0xFF21274A)
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(text = label, style = MaterialTheme.typography.labelMedium, color = Color(0xFFB8C4F6))
-            Text(text = value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = accent)
-        }
-    }
-}
-
-@Composable
-private fun EventTagBadge(label: String) {
-    Surface(
-        shape = RoundedCornerShape(999.dp),
-        color = Color(0x26FFFFFF)
-    ) {
-        Text(
-            text = label,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            style = MaterialTheme.typography.labelMedium,
-            color = Color.White
-        )
-    }
-}
-
-@Composable
-private fun TaskStatusBadge(
-    label: String,
-    color: Color
-) {
-    Surface(
-        shape = RoundedCornerShape(999.dp),
-        color = color.copy(alpha = 0.18f)
-    ) {
-        Text(
-            text = label,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            style = MaterialTheme.typography.labelMedium,
-            color = color,
-            fontWeight = FontWeight.SemiBold
-        )
-    }
-}
-
 private fun localInventoryTicketCount(inventory: Inventory): Int {
     return inventory.items[InventoryCatalog.itemLotteryTicket]?.count ?: 0
 }

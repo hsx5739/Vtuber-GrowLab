@@ -4,6 +4,8 @@ import android.media.MediaPlayer
 import android.net.Uri
 import android.widget.MediaController
 import android.widget.VideoView
+import com.maincharacter.android.PlaceholderScreen
+import com.maincharacter.android.demoEvents
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -194,37 +196,6 @@ private fun EventFilterChip(
                 style = MaterialTheme.typography.labelLarge,
                 color = Color.White,
                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
-            )
-        }
-    }
-}
-
-@Composable
-internal fun EventSummaryPill(
-    label: String,
-    value: String,
-    accent: Color,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
-        color = Color(0xFF20264A)
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = Color(0xFFB8C4F6)
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = accent
             )
         }
     }
@@ -671,21 +642,6 @@ private fun EventComplianceSection() {
     }
 }
 
-@Composable
-internal fun EventTagBadge(label: String) {
-    Surface(
-        shape = RoundedCornerShape(999.dp),
-        color = Color(0x2637D5FF)
-    ) {
-        Text(
-            text = label,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            style = MaterialTheme.typography.labelMedium,
-            color = Color(0xFF90E2FF),
-            fontWeight = FontWeight.SemiBold
-        )
-    }
-}
 @Composable
 private fun EventStateBadge(
     label: String,

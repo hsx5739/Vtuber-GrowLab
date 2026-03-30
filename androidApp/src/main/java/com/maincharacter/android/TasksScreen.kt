@@ -1,5 +1,11 @@
 package com.maincharacter.android
 
+import com.maincharacter.android.PlaceholderScreen
+import com.maincharacter.android.currentTaskBoardContent
+import com.maincharacter.android.isTaskPrimaryActionEnabled
+import com.maincharacter.android.markTaskCompleted
+import com.maincharacter.android.resolveTaskBoardTask
+import com.maincharacter.android.resolveTaskPrimaryActionLabel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -902,25 +908,6 @@ private fun TaskTypeBadge(type: String) {
 }
 
 @Composable
-internal fun TaskStatusBadge(
-    label: String,
-    color: Color
-) {
-    Surface(
-        shape = RoundedCornerShape(999.dp),
-        color = color.copy(alpha = 0.18f)
-    ) {
-        Text(
-            text = label,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            style = MaterialTheme.typography.labelMedium,
-            color = color,
-            fontWeight = FontWeight.SemiBold
-        )
-    }
-}
-
-@Composable
 internal fun RewardChip(chip: RewardChipData) {
     Surface(
         shape = RoundedCornerShape(16.dp),
@@ -936,26 +923,3 @@ internal fun RewardChip(chip: RewardChipData) {
     }
 }
 
-@Composable
-internal fun TaskDetailRow(
-    label: String,
-    value: String
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color(0xFFB8C4F6)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color.White,
-            fontWeight = FontWeight.SemiBold
-        )
-    }
-}
