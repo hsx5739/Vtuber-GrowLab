@@ -1,6 +1,4 @@
 # Gradle
-*.gradle
-*.gradle.kts
 .gradle/
 
 # IDE
@@ -19,7 +17,7 @@ Thumbs.db
 
 # Local
 local.properties
-*.jks
-*.keystore
+#*.jks
+#*.keystore
 *.log
 .gradle-user-home/
