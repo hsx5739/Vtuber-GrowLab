@@ -22,6 +22,17 @@ fun localValue(name: String, fallback: String = ""): String {
     return localProperties.getProperty(name) ?: System.getenv(name) ?: fallback
 }
 
+val releaseStoreFilePath = localValue("RELEASE_STORE_FILE")
+val releaseStoreFile = if (releaseStoreFilePath.isNotBlank()) {
+    rootProject.file(releaseStoreFilePath)
+} else {
+    null
+}
+val hasReleaseSigning = releaseStoreFile?.exists() == true &&
+    localValue("RELEASE_STORE_PASSWORD").isNotBlank() &&
+    localValue("RELEASE_KEY_ALIAS").isNotBlank() &&
+    localValue("RELEASE_KEY_PASSWORD").isNotBlank()
+
 android {
     namespace = "com.maincharacter.android"
     compileSdk = 34
@@ -39,17 +50,21 @@ android {
     }
 
     signingConfigs {
-        create("release") {
-            storeFile = rootProject.file(localValue("RELEASE_STORE_FILE"))
-            storePassword = localValue("RELEASE_STORE_PASSWORD")
-            keyAlias = localValue("RELEASE_KEY_ALIAS")
-            keyPassword = localValue("RELEASE_KEY_PASSWORD")
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = releaseStoreFile
+                storePassword = localValue("RELEASE_STORE_PASSWORD")
+                keyAlias = localValue("RELEASE_KEY_ALIAS")
+                keyPassword = localValue("RELEASE_KEY_PASSWORD")
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
