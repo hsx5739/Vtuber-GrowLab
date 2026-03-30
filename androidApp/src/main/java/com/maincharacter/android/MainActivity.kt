@@ -3,6 +3,7 @@ package com.maincharacter.android
 import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color as AndroidColor
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -36,6 +37,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -43,15 +45,24 @@ import com.maincharacter.android.navigation.MainNavHost
 import com.maincharacter.android.navigation.Screen
 import com.maincharacter.android.ui.theme.MainCharacterTheme
 
+private const val SYSTEM_BAR_COLOR_HEX = "#0C1026"
+private val SystemBarColor = Color(0xFF0C1026)
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.statusBarColor = AndroidColor.parseColor(SYSTEM_BAR_COLOR_HEX)
+        window.navigationBarColor = AndroidColor.parseColor(SYSTEM_BAR_COLOR_HEX)
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = false
+            isAppearanceLightNavigationBars = false
+        }
         AppStateStore.initialize(applicationContext)
         setContent {
             MainCharacterTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = Color(0xFF0C1026)
+                    color = SystemBarColor
                 ) {
                     MainApp()
                 }
@@ -84,7 +95,7 @@ private fun MainApp() {
     }
 
     Scaffold(
-        containerColor = Color(0xFF0C1026),
+        containerColor = SystemBarColor,
         bottomBar = {
             if (showBottomBar) {
                 Surface(

@@ -1,5 +1,6 @@
 package com.maincharacter.android
 
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -27,11 +28,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -40,6 +41,19 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+
+private data class HomeStatusMetric(
+    val label: String,
+    val value: String,
+    val iconRes: Int,
+    val accent: Color
+)
+
+private data class HomeScene(
+    val imageRes: Int,
+    val mood: String,
+    val message: String
+)
 
 @Composable
 fun HomeScreen(
@@ -58,30 +72,39 @@ fun HomeScreen(
         onDispose { conversationController.dispose() }
     }
 
-    val metrics = remember(appState) { currentHomeStatusMetrics(appState) }
-
-    val scenes = listOf(
-        CharacterScene(
-            imageRes = R.drawable.companion_pose_1,
-            mood = "平静",
-            message = "今天也一起往前走一点吧。我会在这里看着你完成计划。"
-        ),
-        CharacterScene(
-            imageRes = R.drawable.companion_pose_2,
-            mood = "温柔",
-            message = "如果累了也没关系，我们可以先从一个很小的目标开始。"
-        ),
-        CharacterScene(
-            imageRes = R.drawable.companion_pose_3,
-            mood = "低落",
-            message = "我好像有点走神了，要不要陪我做一件确定能完成的小事？"
-        ),
-        CharacterScene(
-            imageRes = R.drawable.companion_pose_4,
-            mood = "期待",
-            message = "轮到我啦。今天想先刷任务、看事件，还是只想陪我聊一会儿？"
+    val metrics = remember(appState) {
+        listOf(
+            HomeStatusMetric("亲密", appState.bond.toString(), R.drawable.ic_relation, Color(0xFFF6B7D2)),
+            HomeStatusMetric("魅力", "${appState.charm}%", R.drawable.ic_home, Color(0xFFAED3FF)),
+            HomeStatusMetric("元气", appState.vitality.toString(), R.drawable.ic_energy, Color(0xFFC8FF9B)),
+            HomeStatusMetric("专注", appState.focus.toString(), R.drawable.ic_focus, Color(0xFFD6C7FF))
         )
-    )
+    }
+
+    val scenes = remember {
+        listOf(
+            HomeScene(
+                imageRes = R.drawable.companion_pose_1,
+                mood = "活力在线",
+                message = "今天的状态不错，先把主线任务推进一点，我会一直陪着你。"
+            ),
+            HomeScene(
+                imageRes = R.drawable.companion_pose_2,
+                mood = "温柔注视",
+                message = "别着急，先把眼前这一步做好，节奏稳下来，效率会更高。"
+            ),
+            HomeScene(
+                imageRes = R.drawable.companion_pose_3,
+                mood = "认真督促",
+                message = "如果你现在开始执行，我就帮你记住进度，做完之后回来找我汇报。"
+            ),
+            HomeScene(
+                imageRes = R.drawable.companion_pose_4,
+                mood = "安静陪伴",
+                message = "累了就先休息一下，整理好状态再继续，我希望你今天也能顺利。"
+            )
+        )
+    }
 
     var sceneIndex by remember { mutableIntStateOf(0) }
     val currentScene = scenes[sceneIndex]
@@ -102,15 +125,25 @@ fun HomeScreen(
             inputText = conversationController.inputText,
             onInputChange = conversationController::onInputChange,
             onSendClick = conversationController::sendCurrentMessage,
-            onCharacterClick = { sceneIndex = (sceneIndex + 1) % scenes.size }
+            onCharacterClick = {
+                val nextIndex = (sceneIndex + 1) % scenes.size
+                sceneIndex = nextIndex
+                val speakError = conversationController.speakSceneMessage(
+                    message = scenes[nextIndex].message,
+                    sceneIndex = nextIndex
+                )
+                if (speakError != null) {
+                    Toast.makeText(context, speakError, Toast.LENGTH_SHORT).show()
+                }
+            }
         )
     }
 }
 
 @Composable
 private fun CharacterStageCard(
-    metrics: List<StatusMetric>,
-    scene: CharacterScene,
+    metrics: List<HomeStatusMetric>,
+    scene: HomeScene,
     replyText: String?,
     isLoading: Boolean,
     inputText: String,
@@ -156,9 +189,7 @@ private fun CharacterStageCard(
                     .padding(18.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Surface(
                         shape = RoundedCornerShape(18.dp),
                         color = Color(0x52FFFFFF)
@@ -168,18 +199,19 @@ private fun CharacterStageCard(
                             verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
                             Text(
-                                text = "${demoAccountContext.nickname} · ${demoAccountContext.accountName}",
+                                text = "小主角 · test_user_01",
                                 style = MaterialTheme.typography.labelLarge,
                                 color = Color.White,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Text(
-                                text = "角色绑定已生效，任务奖励和背包资产统一写入当前人物上下文",
+                                text = "欢迎回到主角系统。点击人物可以切换立绘和下方台词，并自动朗读当前文本。",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xFFD8DEFF)
                             )
                         }
                     }
+
                     metrics.chunked(2).forEach { rowMetrics ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -239,7 +271,7 @@ private fun CharacterStageCard(
 }
 
 @Composable
-private fun StatusMetricChip(metric: StatusMetric) {
+private fun StatusMetricChip(metric: HomeStatusMetric) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -306,7 +338,7 @@ private fun DialoguePanel(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
-                text = "状态 · $mood",
+                text = "当前状态 · $mood",
                 style = MaterialTheme.typography.labelLarge,
                 color = Color(0xFF6565A6)
             )
@@ -329,7 +361,7 @@ private fun DialoguePanel(
                     maxLines = 4,
                     placeholder = {
                         Text(
-                            text = "今天想和我说些什么？",
+                            text = "输入你想对角色说的话",
                             style = MaterialTheme.typography.bodySmall
                         )
                     },
@@ -392,12 +424,12 @@ private fun CompanionReplyBubble(
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
-                text = if (isLoading) "正在回复" else "陪伴回复",
+                text = if (isLoading) "正在生成回复" else "角色回应",
                 style = MaterialTheme.typography.labelMedium,
                 color = Color(0xFF6565A6)
             )
             Text(
-                text = if (isLoading) "我在想一想，马上就告诉你。" else replyText.orEmpty(),
+                text = if (isLoading) "稍等一下，我正在整理要对你说的话。" else replyText.orEmpty(),
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color(0xFF243B53)
             )

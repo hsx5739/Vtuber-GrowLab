@@ -19,5 +19,7 @@ Thumbs.db
 
 # Local
 local.properties
+*.jks
+*.keystore
 *.log
 .gradle-user-home/
