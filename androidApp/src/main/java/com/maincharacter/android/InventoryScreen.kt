@@ -27,7 +27,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.maincharacter.shared.model.CurrencyType
+
+private const val INFINITE_SYMBOL = "∞"
 
 @Composable
 fun InventoryScreen(
@@ -40,7 +41,7 @@ fun InventoryScreen(
     val skins = remember(inventory) { currentInventorySkins(inventory) }
     val equippedSkin = remember(inventory) { currentEquippedInventorySkin(inventory) }
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabLabels = listOf("技能", "道具", "外观", "资源")
+    val tabLabels = listOf("技能", "道具", "外观", "状态")
 
     Column(
         modifier = Modifier
@@ -76,8 +77,8 @@ fun InventoryScreen(
                 }
             }
             else -> {
-                CurrencyCard("星尘", appState.stardustBalance.toString(), "商城统一消耗货币，商城/抽卡规则共用这一资产口径。", Color(0xFFFFD66E))
-                CurrencyCard("抽卡券", currentInventoryTicketCount(inventory).toString(), "已同步到背包与抽卡页，后续抽卡执行层会直接读取该库存。", Color(0xFFD6C7FF))
+                CurrencyCard("星尘", INFINITE_SYMBOL, "商城统一消耗货币，商城/抽卡规则共用这一资产口径。", Color(0xFFFFD66E))
+                CurrencyCard("抽卡券", currentInventoryTicketCount(inventory).toString(), "用于后续抽卡和活动兑换，数量仍按真实库存展示。", Color(0xFFD6C7FF))
                 StatusCard("Bond", appState.bond, Color(0xFFF6B7D2))
                 StatusCard("Charm", appState.charm, Color(0xFFAED3FF))
                 StatusCard("Vitality", appState.vitality, Color(0xFFC8FF9B))
@@ -99,13 +100,13 @@ private fun InventoryResourceSummaryCard(appState: PersistedAppState) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "联动结果",
+                text = "资源概览",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
             Text(
-                text = "商城购买和后续抽卡奖励都会通过同一套库存/状态源刷新到背包，不再依赖页面本地假数据。",
+                text = "这里汇总当前背包中的主要资源，方便快速查看库存变化。",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color(0xFFC8D1FF)
             )
@@ -115,7 +116,7 @@ private fun InventoryResourceSummaryCard(appState: PersistedAppState) {
             ) {
                 EventSummaryPill(
                     label = "星尘",
-                    value = appState.inventory.currencies[CurrencyType.STAR_DUST]?.toString() ?: "0",
+                    value = INFINITE_SYMBOL,
                     accent = Color(0xFFFFD66E),
                     modifier = Modifier.weight(1f)
                 )
@@ -126,7 +127,7 @@ private fun InventoryResourceSummaryCard(appState: PersistedAppState) {
                     modifier = Modifier.weight(1f)
                 )
                 EventSummaryPill(
-                    label = "已拥有外观",
+                    label = "已解锁外观",
                     value = appState.inventory.skins.values.count { it.isUnlocked }.toString(),
                     accent = Color(0xFFF7B6D1),
                     modifier = Modifier.weight(1f)
@@ -183,7 +184,7 @@ private fun StatusCard(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(label, style = MaterialTheme.typography.titleMedium, color = Color.White, fontWeight = FontWeight.SemiBold)
-                Text("商城补给购买后会立即更新该状态值。", style = MaterialTheme.typography.bodySmall, color = Color(0xFFB8C4F6))
+                Text("角色当前状态数值。", style = MaterialTheme.typography.bodySmall, color = Color(0xFFB8C4F6))
             }
             Surface(shape = RoundedCornerShape(14.dp), color = accent.copy(alpha = 0.18f)) {
                 Box(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), contentAlignment = Alignment.Center) {

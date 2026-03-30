@@ -25,6 +25,44 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.maincharacter.shared.model.Inventory
+
+private const val INFINITE_SYMBOL = "∞"
+
+private data class LocalGachaRewardPreview(
+    val rewardType: String,
+    val targetName: String,
+    val amountText: String,
+    val rarity: String,
+    val weight: Int,
+    val duplicateRule: String
+)
+
+private data class LocalGachaPoolPreview(
+    val poolId: String,
+    val name: String,
+    val description: String,
+    val ticketCost: Int,
+    val featuredNote: String,
+    val rewards: List<LocalGachaRewardPreview>
+)
+
+private val localGachaPools = listOf(
+    LocalGachaPoolPreview(
+        poolId = "pool_shared_assets_v1",
+        name = "共享资源池",
+        description = "消耗抽卡券即可执行抽取，结果会立即写回背包。",
+        ticketCost = 10,
+        featuredNote = "当前资源池覆盖技能、道具、碎片、抽卡券与星尘。",
+        rewards = listOf(
+            LocalGachaRewardPreview("技能", "护盾术", "解锁/重复转化", "SR", 20, "重复转化"),
+            LocalGachaRewardPreview("道具", "元气药剂", "+1", "R", 35, "可叠加"),
+            LocalGachaRewardPreview("碎片", "夜航校服", "+1", "SR", 18, "可叠加"),
+            LocalGachaRewardPreview("抽卡券", "抽卡券", "+1", "R", 12, "直接入包"),
+            LocalGachaRewardPreview("星尘", "STAR_DUST", "5~100", "N", 15, "直接累加")
+        )
+    )
+)
 
 @Composable
 fun GachaScreen(
@@ -41,10 +79,10 @@ fun GachaScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         GachaOverviewCard(appState)
-        linkedGachaPools.forEach { pool ->
+        localGachaPools.forEach { pool ->
             GachaPoolCard(
                 pool = pool,
-                ticketCount = currentInventoryTicketCount(appState.inventory),
+                ticketCount = localInventoryTicketCount(appState.inventory),
                 onExecute = { AppStateStore.executeGacha(pool.poolId) }
             )
         }
@@ -72,7 +110,7 @@ private fun GachaOverviewCard(appState: PersistedAppState) {
                 color = Color.White
             )
             Text(
-                text = "已接入真实十连：每次消耗 10 张抽卡券，奖励即时写回背包并执行重复奖励转换。",
+                text = "抽卡会消耗抽卡券，奖励会立即写回背包。星尘在这里以无限符号展示。",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color(0xFFC8D1FF)
             )
@@ -82,19 +120,19 @@ private fun GachaOverviewCard(appState: PersistedAppState) {
             ) {
                 EventSummaryPill(
                     label = "抽卡券",
-                    value = currentInventoryTicketCount(appState.inventory).toString(),
+                    value = localInventoryTicketCount(appState.inventory).toString(),
                     accent = Color(0xFFD6C7FF),
                     modifier = Modifier.weight(1f)
                 )
                 EventSummaryPill(
-                    label = "单次十连",
+                    label = "单次消耗",
                     value = "10 券",
                     accent = Color(0xFFFFD66E),
                     modifier = Modifier.weight(1f)
                 )
                 EventSummaryPill(
                     label = "星尘",
-                    value = appState.stardustBalance.toString(),
+                    value = INFINITE_SYMBOL,
                     accent = Color(0xFFFFD66E),
                     modifier = Modifier.weight(1f)
                 )
@@ -105,7 +143,7 @@ private fun GachaOverviewCard(appState: PersistedAppState) {
 
 @Composable
 private fun GachaPoolCard(
-    pool: GachaPoolPreview,
+    pool: LocalGachaPoolPreview,
     ticketCount: Int,
     onExecute: () -> Unit
 ) {
@@ -129,8 +167,8 @@ private fun GachaPoolCard(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     TaskStatusBadge(
-                        if (canExecute) "可执行" else "券数不足",
-                        if (canExecute) Color(0xFF8DFFBB) else Color(0xFFF2B9DA)
+                        label = if (canExecute) "可抽取" else "券不足",
+                        color = if (canExecute) Color(0xFF8DFFBB) else Color(0xFFF2B9DA)
                     )
                     Text(pool.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
                     Text(pool.description, style = MaterialTheme.typography.bodyMedium, color = Color(0xFFC8D1FF))
@@ -198,7 +236,7 @@ private fun GachaPoolCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = if (canExecute) "执行十连" else "抽卡券不足",
+                        text = if (canExecute) "执行抽卡" else "抽卡券不足",
                         color = Color.White,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -218,7 +256,7 @@ private fun GachaResultCard(results: List<GachaPullResult>) {
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text("本次十连结果", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
+            Text("抽卡结果", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
             results.forEach { result ->
                 Surface(shape = RoundedCornerShape(16.dp), color = Color(0xFF20264A)) {
                     Row(
@@ -233,7 +271,7 @@ private fun GachaResultCard(results: List<GachaPullResult>) {
                             Text(result.title, style = MaterialTheme.typography.titleMedium, color = Color.White, fontWeight = FontWeight.SemiBold)
                             Text(result.detail, style = MaterialTheme.typography.bodySmall, color = Color(0xFFB8C4F6))
                         }
-                        TaskStatusBadge(result.rarity, Color(result.accentArgb))
+                        TaskStatusBadge(label = result.rarity, color = Color(result.accentArgb))
                     }
                 }
             }
@@ -251,12 +289,57 @@ private fun GachaRuleCard() {
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text("重复奖励规则", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFFFFE37A))
+            Text("规则说明", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFFFFE37A))
             Text(
-                text = "外观重复转碎片、满级技能重复转道具、道具与碎片重复叠加、星尘直接累加。抽卡完成后结果会立即写回背包。",
+                text = "重复外观会转碎片，重复技能会转资源，道具和星尘奖励会直接累加到背包。",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color(0xFFFFF6C4)
             )
         }
     }
+}
+
+@Composable
+private fun EventSummaryPill(
+    label: String,
+    value: String,
+    accent: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(20.dp),
+        color = Color(0xFF21274A)
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(text = label, style = MaterialTheme.typography.labelMedium, color = Color(0xFFB8C4F6))
+            Text(text = value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = accent)
+        }
+    }
+}
+
+@Composable
+private fun TaskStatusBadge(
+    label: String,
+    color: Color
+) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = color.copy(alpha = 0.18f)
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            style = MaterialTheme.typography.labelMedium,
+            color = color,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+private fun localInventoryTicketCount(inventory: Inventory): Int {
+    return inventory.items[InventoryCatalog.itemLotteryTicket]?.count ?: 0
 }
