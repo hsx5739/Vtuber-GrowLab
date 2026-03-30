@@ -15,7 +15,7 @@
 
 <video src="./Screenrecording_20260330_113702.mp4" controls width="360"></video>
 
-如果当前平台不支持内嵌播放，可直接打开视频文件：[WeChat_20260330114838.mp4](./WeChat_20260330114838.mp4)
+如果当前平台不支持内嵌播放，可直接打开视频文件：[Screenrecording_20260330_113702.mp4](./Screenrecording_20260330_113702.mp4)
 
 ## 项目结构
 
